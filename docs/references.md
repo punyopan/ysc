@@ -24,6 +24,18 @@
 8. Tak, H. et al. **End-to-End Anti-Spoofing with RawNet2** (2021).
    https://arxiv.org/abs/2011.01108
 
+9. Young Scientist Competition (YSC), NSTDA. **Competition requirements and research-ethics conditions**. Accessed 2026-08-18.
+   https://www.nstda.or.th/ysc/requirements/
+
+10. Young Scientist Competition (YSC), NSTDA. **Forms and manuals**. Accessed 2026-08-18.
+    https://www.nstda.or.th/ysc/logo-and-forms-manuals/
+
+11. NSTDA Supercomputer Center (ThaiSC). **LANTA Supercomputer system overview**. Accessed 2026-08-18.
+    https://thaisc.io/thaisc-resorces/lanta
+
+12. NSTDA Supercomputer Center (ThaiSC). **Services and LANTA access information**. Accessed 2026-08-18.
+    https://thaisc.io/services
+
 ## Notes
 
 - CSS and SEA-Spoof have restricted research access; review their current terms before downloading or using them.

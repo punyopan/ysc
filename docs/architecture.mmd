@@ -1,0 +1,26 @@
+flowchart TB
+    A[Thai waveform] --> B[Resample and normalize]
+    B --> C[WavLM encoder]
+    C --> D[Selected Transformer layers]
+    D --> E[Mixture of LoRA experts]
+    D --> F[Spoof representation]
+    D --> G[Channel representation]
+    G --> H[Channel-conditioned Top-K router]
+    H -. expert weights .-> E
+    E --> I[Attentive temporal pooling]
+    F --> I
+    I --> J[Real or spoof probability]
+    I --> K[Calibrated uncertainty]
+    F -. gradient reversal .-> L[Adversarial channel classifier]
+    M[Paired channel views of one source] -. consistency loss .-> F
+
+    classDef input fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;
+    classDef backbone fill:#ede9fe,stroke:#6d28d9,color:#3b0764;
+    classDef spoof fill:#dcfce7,stroke:#15803d,color:#14532d;
+    classDef channel fill:#fef3c7,stroke:#b45309,color:#78350f;
+    classDef output fill:#ffe4e6,stroke:#be123c,color:#881337;
+    class A,B input;
+    class C,D,E backbone;
+    class F,I,M spoof;
+    class G,H,L channel;
+    class J,K output;

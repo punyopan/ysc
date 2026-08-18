@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this research proposal, please cite it using the metadata below."
+title: "ChannelMoLEx-TH: Channel-Robust Mixture-of-LoRA Experts for Generalizable Thai Audio Deepfake Detection"
+type: software
+authors:
+  - family-names: "punyo_o"
+repository-code: "https://github.com/punyopan/ysc"
+url: "https://github.com/punyopan/ysc"
+license: MIT
+version: 0.1.0
+date-released: 2026-08-18
+abstract: >-
+  A research proposal for channel-aware, generator-generalizable Thai
+  audio-deepfake detection using WavLM and a mixture of LoRA experts.
+keywords:
+  - audio deepfake detection
+  - Thai speech
+  - WavLM
+  - LoRA
+  - anti-spoofing

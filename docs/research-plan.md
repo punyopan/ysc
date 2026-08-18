@@ -6,7 +6,22 @@ Audio-deepfake detectors often perform well when the training and test data shar
 
 ### Main hypothesis
 
-A WavLM detector with channel-conditioned Mixture-of-LoRA-Experts routing, adversarial channel disentanglement, and cross-channel consistency training will generalize better than RawNet2, AASIST, fully fine-tuned WavLM, single-LoRA WavLM, and standard MoLEx under unseen-generator and unseen-channel conditions.
+A WavLM detector with channel-conditioned Mixture-of-LoRA-Experts routing, adversarial channel disentanglement, and cross-channel consistency training will generalize better than frozen-WavLM, single-LoRA WavLM, and standard MoLEx baselines under unseen-generator and unseen-channel conditions.
+
+### Research gap and contribution
+
+Prior work provides multilingual/Thai spoofing data and MoLEx-style parameter-efficient adaptation, but it does not directly test whether a detector can preserve generator-generalizable spoof evidence while separately modelling an unseen transmission channel. The proposed contribution is the combination of:
+
+1. a spoof representation trained to suppress channel identity;
+2. a separate channel representation used only to condition expert routing;
+3. paired cross-channel views of the same utterance for consistency training; and
+4. a generator-family-disjoint × channel-disjoint Thai evaluation protocol.
+
+### Committed scope and stretch scope
+
+The **committed YSC study** is deliberately bounded to four detector variants, at least two held-out generator families, and five reproducible channel groups: telephony, Opus, lossy file compression, packet/network impairment, and replay/noise. This is the minimum study required to test the main hypothesis.
+
+Additional generators, RawNet2/AASIST reproduction, real LINE/telephone/WebRTC transmission, Thai tone auxiliary tasks, partial-deepfake localization, and conformal prediction are **stretch goals**. They will be attempted only after the committed experiment matrix and leakage checks are complete. See [`feasibility.md`](feasibility.md) for the compute plan and fallback paths.
 
 ### Proposed title
 
@@ -107,6 +122,8 @@ Evaluate Brier loss, temperature scaling, ensembles, conformal prediction, or se
 
 Potential research datasets include Chula Spoofed Speech (CSS), SEA-Spoof Thai, and general anti-spoofing data such as ASVspoof. Full CSS and SEA-Spoof access is restricted and must be obtained before the project begins.
 
+Dataset access is therefore treated as a project risk rather than an assumption. If restricted Thai datasets are not approved in time, the pipeline and channel-robustness method will first be validated on openly obtainable ASVspoof data. Thai evaluation will then use only lawfully accessible, consented, or self-generated recordings whose licenses permit the experiment. Results from the fallback dataset will not be presented as evidence of Thai-language generalization.
+
 Add modern Thai spoof sources only where licensing and consent permit:
 
 - VITS-family systems
@@ -170,6 +187,8 @@ Keep at least one final family untouched until the architecture and hyperparamet
 
 ### Actual transmission track
 
+This track is a **stretch goal**, not a dependency of the main result. It begins only after the reproducible simulation track is frozen and after the required consent and YSC/SRC/IRB review has been completed.
+
 Transmit consented research recordings through controlled accounts or calls. Record:
 
 - Application and version
@@ -216,26 +235,32 @@ Break results down by generator family, individual generator, channel, speaker, 
 
 ### Baselines
 
-1. RawNet2
-2. AASIST
-3. Frozen WavLM plus classifier
-4. Fully fine-tuned WavLM
-5. WavLM plus one LoRA adapter
-6. Standard WavLM/MoLEx
-7. Proposed channel-aware WavLM/MoLEx
+**Committed comparison:**
+
+1. Frozen WavLM plus classifier
+2. WavLM plus one LoRA adapter
+3. Standard WavLM/MoLEx
+4. Proposed channel-aware WavLM/MoLEx
+
+**Stretch comparison, if compute and time remain:** RawNet2, AASIST, and fully fine-tuned WavLM.
 
 ### Ablation matrix
 
-| Variant | Channel branch | MoLEx | Adversarial invariance | Cross-channel consistency |
+| Variant | Channel-conditioned routing | MoLEx | Adversarial invariance | Cross-channel consistency |
 |---|---:|---:|---:|---:|
 | Full model | ✓ | ✓ | ✓ | ✓ |
-| No channel branch | — | ✓ | — | ✓ |
+| No channel-conditioned routing | — | ✓ | ✓ | ✓ |
 | Single LoRA | ✓ | — | ✓ | ✓ |
 | No invariance | ✓ | ✓ | — | ✓ |
 | No consistency | ✓ | ✓ | ✓ | — |
-| Plain WavLM | — | — | — | — |
+
+Each ablation changes one principal component relative to the full model. Frozen WavLM is reported separately as a reference baseline rather than described as a one-factor ablation.
 
 Improvement must hold under the unseen-generator × unseen-channel test. Gains limited to familiar channels may indicate channel memorization.
+
+### Decision and falsification rule
+
+The primary comparison will be macro-averaged EER across unseen-generator × unseen-channel cells, with paired cluster-bootstrap confidence intervals over source recordings (or speakers where source pairing is unavailable). Define the paired difference as `baseline EER − proposed EER`; the hypothesis will be treated as unsupported if the lower confidence bound is not above zero, or if gains disappear under leakage-controlled splits. A result that improves only known-channel performance is not evidence for the stated hypothesis.
 
 ---
 
