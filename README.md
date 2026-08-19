@@ -103,6 +103,7 @@ No new architecture is proposed. The panel exists to show findings are not an ar
 
 - [`docs/research-plan.md`](docs/research-plan.md) — novelty position, conditions, hypotheses, statistics, limitations
 - [`docs/feasibility.md`](docs/feasibility.md) — tiered 12-week schedule with go/no-go gates
+- [`docs/submission.md`](docs/submission.md) — title, abstract, and form text in English and Thai
 - [`docs/compute-request.md`](docs/compute-request.md) — preliminary resource estimate and allocation request
 - [`docs/ethics.md`](docs/ethics.md) — consent, data governance, responsible release, AI-tool disclosure
 - [`docs/references.md`](docs/references.md) — research and official sources

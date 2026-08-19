@@ -103,6 +103,7 @@ Recovery = (ΔEER_baseline − ΔEER_augmented) / ΔEER_baseline
 
 - [`docs/research-plan.md`](docs/research-plan.md) — จุดยืนด้านความใหม่ เงื่อนไข สมมติฐาน สถิติ และข้อจำกัด
 - [`docs/feasibility.md`](docs/feasibility.md) — แผน 12 สัปดาห์แบบแบ่ง tier พร้อมจุดตัดสินใจ
+- [`docs/submission.md`](docs/submission.md) — ชื่อเรื่อง บทคัดย่อ และข้อความสำหรับกรอกแบบฟอร์ม ทั้งภาษาอังกฤษและภาษาไทย
 - [`docs/compute-request.md`](docs/compute-request.md) — ประมาณการทรัพยากรคำนวณเบื้องต้นและการขอใช้ allocation
 - [`docs/ethics.md`](docs/ethics.md) — ความยินยอม การจัดการข้อมูล การสาธิตอย่างรับผิดชอบ และการเปิดเผยการใช้ AI
 - [`docs/references.md`](docs/references.md) — เอกสารวิจัยและแหล่งข้อมูลทางการ
