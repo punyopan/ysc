@@ -50,7 +50,7 @@ Editable source: [`docs/architecture.mmd`](docs/architecture.mmd)
 
 C1 is the bandwidth-only control. It removes the high-frequency band while retaining 16-bit linear precision. Comparing C1 with C2 and C3 estimates the additional change associated with companding after bandwidth has already been reduced.
 
-**Sweep set:** a no-filter 16 kHz reference followed by low-pass cutoffs at 6000, 4000, 3400, 2500, 1500, and 800 Hz.
+**Sweep set:** a no-filter 16 kHz reference followed by low-pass cutoffs at 6 KHz, 4 KHz, 3.4 KHz, 2.5 KHz, 1.5 KHz, and 800 Hz.
 
 The sweep keeps the sample rate fixed at 16 kHz and changes only the filter cutoff. This avoids introducing resampling as another variable. The decomposition set still requires an 8 kHz round trip to represent G.711, but the sweep does not.
 
