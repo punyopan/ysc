@@ -1,37 +1,53 @@
-# Research Plan: BenchmarkGap-TH
+# Research Plan: ScaleGap-TH
 
 ## 1. Problem statement
 
-Audio-deepfake detectors can achieve low error on the benchmark used for development yet fail after deployment conditions change. Müller et al. reported that RawNet2 increased from 3.154% EER on ASVspoof 2019 LA to 37.819% on their In-the-Wild dataset; across evaluated configurations, they reported approximately 200–1,000% EER deterioration [1]. Shi et al. later evaluated three detector families under six communication codecs and five packet-loss rates and reported an average 5.30% degradation in EER from clean audio to codec-compressed audio with zero packet loss [2].
+Audio-deepfake detectors are increasingly deployed at the edge — on phones, gateways, and single-board computers — where compute is scarce. The standard response is to use a smaller model. That advice is validated almost entirely on clean, wideband benchmark audio.
 
-Those studies establish the general problem but do not answer a narrow Thai deployment question: does clean-benchmark performance predict performance after a reproducible G.711 telephone transformation?
+Thai voice-cloning scams do not arrive as clean wideband audio. They arrive over a telephone path, where G.711 low-pass filters the signal to roughly 3.4 kHz [3]. Most vocoder and TTS artifacts concentrate above that cutoff. This creates a specific, testable concern: a high-capacity detector may retain redundant discriminative cues in the surviving band, while a small detector may have allocated its limited capacity to the band the channel removes. If so, the accuracy cost of shrinking a detector is larger on telephone audio than on clean audio, and edge deployment is harder than clean-condition efficiency numbers suggest.
+
+### What prior work does and does not establish
+
+Müller et al. reported RawNet2 rising from 3.154% EER on ASVspoof 2019 LA to 37.819% on an In-the-Wild dataset, with roughly 200–1,000% EER deterioration across configurations [1]. That measures domain shift, not capacity.
+
+Shi et al. benchmarked three detector families across six communication codecs and five packet-loss rates, reporting an average 5.30% EER degradation from clean audio to codec-compressed audio at zero packet loss, and proposed a data-augmentation remedy [2]. Their codec set — AMR-WB, EVS, IVAS, Opus, Speex-WB and SILK — is entirely wideband. Narrowband G.711 is not evaluated.
+
+ASVspoof 2021 LA does include real telephony transmission: condition C3 traverses a PSTN path with a μ-law codec at 8 kHz, and further conditions traverse a PBX using a-law and G.722 among others [10]. This is stronger evidence than simulation, but it is English, it reports no capacity axis, and it provides no bandwidth-only control that would separate low-pass filtering from companding.
+
+On the efficiency side, AASIST-L attains competitive accuracy at roughly 85K parameters [7], and subsequent work sparsifies the AASIST backend specifically for deployment [11]. Both characterise the accuracy–compute trade-off under clean conditions.
+
+The interaction is unmeasured. No published work reports EER degradation as a function of detector capacity under narrowband telephone coding, and none decomposes that degradation into bandwidth and companding components.
 
 ### Research question
 
-> Does detector performance on clean Thai audio-deepfake benchmark data predict performance after G.711 A-law and μ-law telephone coding?
+> Does G.711 telephone coding degrade small-capacity Thai audio-deepfake detectors more than large-capacity ones?
 
 ### Hypotheses
 
-- **H1 — degradation:** G.711 telephone coding increases EER relative to paired clean audio for most detector families.
-- **H2 — ranking instability:** the ranking of detector families by clean EER is not perfectly preserved under G.711.
-- **H3 — bandwidth contribution:** some degradation is explained by the 8 kHz bandwidth reduction alone, while additional degradation may be attributable to A-law/μ-law companding.
+- **H1 — frontier steepening (primary):** the increase in EER caused by G.711 coding is larger for small-capacity detectors than for large-capacity detectors.
+- **H2 — absolute degradation:** G.711 coding increases EER relative to paired clean audio for most detector families.
+- **H3 — bandwidth attribution:** some degradation is explained by the 8 kHz bandwidth reduction alone, while additional degradation may be attributable to A-law/μ-law companding.
+- **H4 — deployment viability:** at least one detector under 100K parameters retains usable G.711 performance while meeting the preregistered real-time factor and peak-memory budget on the declared target device.
 
-The study is descriptive and falsifiable. H1 is unsupported if paired intervals show no positive degradation. H2 is unsupported if rankings remain stable with high correlation and the clean winner consistently remains the G.711 winner. H3 is unsupported if G.711 conditions do not differ meaningfully from the 8 kHz linear-PCM control.
+The study is descriptive and falsifiable in both directions. H1 is unsupported if the difference-in-differences interval includes or falls below zero — which would be a useful result, indicating that cheap detectors are safe for this channel. H2 is unsupported if paired intervals show no positive degradation. H3 is unsupported if G.711 conditions do not differ meaningfully from the 8 kHz linear-PCM control. H4 is unsupported if no small detector meets both budgets.
 
 ## 2. Contribution and scope
 
-The contribution is a controlled, paired measurement of the clean-to-telephone benchmark gap for Thai audio-deepfake detection. It combines:
+The contribution is a controlled, paired measurement of how the accuracy–compute frontier for Thai audio-deepfake detection changes under a narrowband telephone channel, plus an on-device measurement establishing whether the small end of that frontier is reachable in practice. It combines:
 
 1. identical source recordings across all channel conditions;
 2. symmetric transformation of genuine and spoof classes;
 3. an 8 kHz bandwidth-only control;
-4. four representative detector families;
-5. fixed development thresholds transferred to channel conditions; and
-6. paired uncertainty estimates and ranking-stability analysis.
+4. a detector panel spanning roughly three orders of magnitude in capacity;
+5. fixed development thresholds transferred to channel conditions;
+6. paired difference-in-differences estimates with cluster-bootstrap uncertainty; and
+7. measured compute cost on declared target hardware.
 
 ### Explicit exclusions
 
-The committed study does not investigate unseen generators, messaging applications, packet loss, replay, background noise, real telephone calls, partial deepfakes, calibration methods, abstention, Thai-tone auxiliaries, or a novel mixture-of-experts architecture. These may be discussed as future work but cannot enter the main experiment after preregistration.
+The committed study does not propose a new architecture, does not pursue state of the art on any benchmark, and does not investigate unseen generators, messaging applications, packet loss, replay, background noise, real telephone calls as a main condition, partial deepfakes, abstention, or Thai-tone auxiliaries. These may be discussed as future work but cannot enter the main experiment after preregistration.
+
+Designing a novel nano architecture is deliberately out of scope. AASIST-L already occupies the sub-100K size class [7] and a sparsified successor exists [11]; attempting to outperform them is a poor use of the schedule and would replace a falsifiable question with an engineering race.
 
 ## 3. Experimental conditions
 
@@ -44,7 +60,11 @@ Every test source produces four deterministic, paired conditions:
 | C2 | G.711 μ-law encode/decode at 8 kHz, then resampled | Measure μ-law path |
 | C3 | G.711 A-law encode/decode at 8 kHz, then resampled | Measure A-law path |
 
-G.711 is formally defined by ITU-T Recommendation G.711 [3]. The exact encoder, decoder, resampler, software version, and command line will be frozen before final evaluation. Peak normalization, denoising, silence trimming, or loudness normalization will not be applied differently across conditions.
+G.711 is formally defined by ITU-T Recommendation G.711 [3]. The exact encoder, decoder, resampler, software version, and command line will be frozen before final evaluation.
+
+**Resampler control.** Because C1–C3 are resampled back up to the model input rate, the resampling filter is itself a potential artifact and a potential confound for the bandwidth effect. One resampler, one filter design, and one set of parameters will be used for every condition and both classes, pinned by version and recorded in the transformation manifest. A null check will confirm that a C0→8 kHz→16 kHz round trip applied to already-narrowband audio does not itself create a class-separable cue.
+
+Peak normalization, denoising, silence trimming, and loudness normalization will not be applied differently across conditions.
 
 ### Transformation integrity checks
 
@@ -59,6 +79,8 @@ G.711 is formally defined by ITU-T Recommendation G.711 [3]. The exact encoder, 
 
 Potential Thai sources include Chula Spoofed Speech (CSS) and SEA-Spoof, subject to current access approval and licenses [4–6]. The final dataset choice must be frozen before model comparison.
 
+**Prior-work check.** The thesis underlying the CSS release is titled to include channel effects [12]. It must be read in full before the protocol is frozen. If it already reports narrowband telephone conditions on CSS, this project's channel protocol is a replication and the capacity axis becomes the sole contribution; the proposal will say so explicitly rather than overstate novelty.
+
 ### Split controls
 
 - Speaker-disjoint train, development, and test partitions
@@ -68,30 +90,44 @@ Potential Thai sources include Chula Spoofed Speech (CSS) and SEA-Spoof, subject
 - No transformed version of a test source in training or development
 - One immutable test manifest used for every detector and condition
 
-Generator identity is stratified where possible but is not a generalization target. The project will not claim robustness to unknown synthesis systems.
+Generator identity is stratified where possible but is not a generalization target.
 
 ### Dataset fallback
 
-If restricted Thai data is unavailable, the pipeline may be validated on lawfully accessible ASVspoof data. Such a fallback result must be labelled non-Thai and cannot answer the Thai research question. The report will distinguish a completed engineering validation from a completed Thai study.
+If restricted Thai data is unavailable, the capacity-versus-channel question remains answerable on lawfully accessible ASVspoof data. This is a genuine fallback rather than a dead end: the frontier hypothesis is not language-specific, so a completed non-Thai study still answers H1–H4. Such a result must be labelled non-Thai, and the report will state plainly that the Thai application claim was not tested.
 
 ## 5. Detector panel
 
-The committed panel contains four systems representing different feature and adaptation strategies:
+Capacity is the manipulated variable. The panel uses published systems only, spanning roughly three orders of magnitude:
 
-1. **LFCC-GMM** — classical acoustic-feature baseline
-2. **AASIST** — raw-waveform spectro-temporal graph-attention detector [7]
-3. **Frozen WavLM + classifier** — fixed self-supervised representation [8]
-4. **WavLM + single LoRA adapter** — parameter-efficient adaptation [9]
+| System | Approx. scale | Role | Ref |
+| --- | --- | --- | --- |
+| LFCC-GMM | non-neural | classical floor | — |
+| AASIST-L | ~85K parameters | on-device candidate | [7] |
+| AASIST | ~297K parameters | small neural reference | [7] |
+| Frozen WavLM + linear head | ~94M frozen | large fixed representation | [8] |
+| WavLM + single LoRA adapter | ~94M + adapters | large adapted | [8, 9] |
+
+Parameter counts above are indicative. Actual parameter counts, MACs per second of audio, and measured latency are reported from the frozen configurations.
 
 Every detector receives identical train/development/test source partitions. Hyperparameters are selected using only the clean training/development data and then frozen. Channel-condition test scores cannot be used to tune architectures, training schedules, thresholds, or preprocessing.
 
-Three independent training seeds will be used for trainable neural systems if compute permits. Seed-level results quantify optimization variability but are not treated as independent detector families in rank-correlation tests.
+Three independent training seeds will be used for trainable neural systems if compute permits. Seed-level results quantify optimization variability and are reported as such.
+
+### Confounding between capacity and architecture
+
+Capacity cannot be varied in isolation across published systems: AASIST-L and WavLM differ in family as well as size. The design addresses this rather than ignoring it, by preregistering two contrasts:
+
+- **Range contrast (primary):** AASIST-L versus WavLM+LoRA. Largest capacity span, confounded with family.
+- **Within-family contrast (secondary):** AASIST-L versus AASIST. Family held constant, narrower span.
+
+Agreement between the two strengthens a capacity interpretation. Disagreement will be reported as evidence that family, not size, drives the effect.
 
 ## 6. Evaluation protocol
 
 ### Primary condition
 
-For detector `m`, define:
+For detector `m`:
 
 ```text
 EER_G711(m) = mean(EER_C2(m), EER_C3(m))
@@ -100,49 +136,62 @@ EER_G711(m) = mean(EER_C2(m), EER_C3(m))
 
 The macro-average prevents a decision based on whichever G.711 law happens to be easier.
 
-### Primary analysis
+### Primary analysis — difference in differences
 
-For each detector, report `ΔEER_G711` with a 95% paired cluster-bootstrap confidence interval. The resampling unit is the original source recording; all channel versions of one source move together in every bootstrap replicate. Where repeated speech from the same speaker creates dependence, a speaker-cluster sensitivity analysis will also be reported.
+```text
+DiD(small, large) = ΔEER_G711(small) − ΔEER_G711(large)
+```
+
+Both detectors are evaluated on the same paired recordings, so the contrast is estimated with a paired cluster bootstrap whose resampling unit is the original source recording. All channel versions of one source, and all detectors' scores for that source, move together in every replicate. H1 is supported if the 95% interval for `DiD` excludes zero from above.
+
+Where repeated speech from the same speaker creates dependence, a speaker-cluster sensitivity analysis will also be reported.
+
+### Frontier reporting
+
+`ΔEER_G711` is reported for all five systems against measured capacity, as a descriptive Pareto curve with per-system intervals. With five systems, a fitted slope over capacity has low inferential power; it will be reported as an effect estimate with uncertainty, never reduced to a p-value.
 
 ### Bandwidth attribution
 
-Compare:
-
 ```text
-Bandwidth effect = EER_C1 − EER_C0
-Additional μ-law effect = EER_C2 − EER_C1
-Additional A-law effect = EER_C3 − EER_C1
+Bandwidth effect          = EER_C1 − EER_C0
+Additional μ-law effect   = EER_C2 − EER_C1
+Additional A-law effect   = EER_C3 − EER_C1
 ```
 
-This avoids attributing all narrowband degradation to companding.
+This avoids attributing all narrowband degradation to companding. The decomposition is reported per system, so that H1 can be examined separately for the bandwidth and companding components.
 
 ### Threshold-transfer analysis
 
-EER permits a new threshold for each condition, which can hide deployment failure. Therefore, each detector's operating threshold will also be selected once on the clean development set and transferred unchanged to C0–C3. Report:
+EER permits a new threshold for each condition, which can hide deployment failure. Each detector's operating threshold will also be selected once on the clean development set and transferred unchanged to C0–C3. Report:
 
 - false-positive rate for genuine audio;
 - false-negative rate for spoof audio;
 - balanced accuracy; and
 - change relative to C0.
 
-### Ranking analysis
+### Compute measurement
 
-Across the four detector families, calculate Spearman rank correlation between C0 EER and G.711 macro-EER. Also report the fraction of paired bootstrap replicates in which the clean winner remains the G.711 winner.
+For every detector, measured and reported:
 
-With only four detector families, rank correlation has low inferential power. It is an exploratory effect estimate, not a universal claim about all detectors. Exact permutations and bootstrap intervals will be reported; the result will not be reduced to a p-value alone.
+- parameter count and model file size
+- multiply–accumulate operations per second of audio
+- real-time factor on the declared target device
+- peak resident memory under sustained inference
+- the same figures on the development workstation, for comparability
+
+Measurement conditions — device, thermal state, batch size, input length, number of repetitions, and how the median and spread are computed — are preregistered.
 
 ### Secondary metrics
 
-- AUROC
-- AUPRC
+- AUROC and AUPRC
 - EER separately for C2 and C3
 - Per-generator and per-speaker breakdowns where sample size and privacy permit
-- Inference latency and peak memory as descriptive engineering results
 
 ## 7. Leakage and confounding controls
 
 - Apply C1–C3 symmetrically to genuine and spoof samples.
 - Use identical containers, input rates, duration handling, and file naming across classes.
+- Use one pinned resampler configuration everywhere.
 - Do not encode only one class or generator family.
 - Do not allow channel labels to correlate with class labels.
 - Freeze all thresholds before opening transformed test results.
@@ -157,27 +206,31 @@ The project succeeds scientifically whether the hypotheses are supported or reje
 Before final scoring, preregister:
 
 1. the immutable test manifest;
-2. the four detector configurations;
+2. the five detector configurations;
 3. the seed policy;
-4. C0–C3 transformation commands;
-5. the primary G.711 macro-average;
-6. bootstrap units and replicate count; and
-7. handling of failed or corrupted samples.
+4. C0–C3 transformation commands and the pinned resampler;
+5. the primary G.711 macro-average and the two DiD contrasts;
+6. bootstrap units and replicate count;
+7. the target device, the real-time-factor budget, and the peak-memory budget for H4; and
+8. handling of failed or corrupted samples.
 
 Interpretation:
 
-- A positive `ΔEER_G711` whose interval excludes zero supports degradation for that detector.
-- A clean/G.711 rank correlation near one with stable winner identity supports benchmark ranking transfer within this limited panel.
-- Weak or unstable rank agreement supports a benchmark-ranking gap.
-- Similar C1, C2, and C3 results indicate bandwidth—not G.711 companding—is the dominant measured factor.
+- A positive `DiD` whose interval excludes zero supports frontier steepening.
+- A `DiD` interval containing zero does not support steepening and will be reported as such, not as a null to be explained away.
+- A negative `DiD` supports the opposite conclusion: small detectors are comparatively robust to this channel.
+- Agreement between the range and within-family contrasts supports a capacity interpretation; disagreement supports an architecture-family interpretation.
+- Similar C1, C2, and C3 results indicate bandwidth — not G.711 companding — is the dominant measured factor.
 - Wide intervals produce an inconclusive result, not evidence of no effect.
 
 ## 9. Limitations
 
 - Simulated G.711 is not a complete telephone network.
-- Four detector families provide only a preliminary ranking analysis.
+- Capacity is entangled with architecture family; the within-family contrast narrows but does not eliminate this.
+- Five systems provide only a preliminary frontier shape.
 - Dataset access and Thai speaker diversity may constrain external validity.
 - EER does not represent real scam prevalence or asymmetric deployment costs.
+- On-device timings are specific to one device, one runtime, and one thermal environment.
 - Current generators may not represent future synthesis systems.
 - Results cannot establish that any detector is safe for forensic or financial decisions.
 
@@ -187,8 +240,9 @@ Interpretation:
 - Reproducible C0–C3 transformation script and environment
 - Frozen detector configurations and model revisions
 - Source-level prediction files
-- EER, threshold-transfer, and bootstrap analysis scripts
-- Clean-versus-channel tables and plots
+- EER, threshold-transfer, DiD and bootstrap analysis scripts
+- Frontier plots of `ΔEER_G711` against measured capacity
+- On-device benchmark script and measured latency/memory tables
 - Leakage audit, model card, ethics statement, and limitations
 
-See [`feasibility.md`](feasibility.md) for the schedule and LANTA resource plan.
+See [`feasibility.md`](feasibility.md) for the schedule, compute plan, and hardware plan.

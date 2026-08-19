@@ -4,22 +4,31 @@ flowchart TB
     A --> C2[C2: G.711 μ-law<br/>8 kHz round trip]
     A --> C3[C3: G.711 A-law<br/>8 kHz round trip]
 
-    C0 --> D[Four frozen detector families]
+    C0 --> D
     C1 --> D
     C2 --> D
     C3 --> D
 
-    D --> E[Paired source-level scores]
+    subgraph D [Frozen detector panel — capacity axis]
+        direction LR
+        D1[LFCC-GMM<br/>non-neural] --- D2[AASIST-L<br/>~85K] --- D3[AASIST<br/>~297K] --- D4[frozen WavLM<br/>~94M] --- D5[WavLM + LoRA<br/>~94M + adapters]
+    end
 
-    E --> F[ΔEER with paired<br/>cluster-bootstrap intervals]
+    D --> E[Paired source-level scores<br/>+ measured params, MACs, latency]
+
+    E --> F[ΔEER per detector with paired<br/>cluster-bootstrap intervals]
     E --> G[Clean-development threshold transfer<br/>FPR, FNR and balanced accuracy<br/>with no channel retuning]
-    E --> H[Clean versus G.711<br/>rank stability]
+    E --> H[Bandwidth versus companding<br/>decomposition from C1]
+    E --> I[DiD: ΔEER small − ΔEER large<br/>range and within-family contrasts]
+    E --> J[Frontier plot and<br/>on-device deployment check]
 
     classDef source fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;
     classDef condition fill:#fef3c7,stroke:#b45309,color:#78350f;
     classDef detector fill:#ede9fe,stroke:#6d28d9,color:#3b0764;
     classDef analysis fill:#dcfce7,stroke:#15803d,color:#14532d;
+    classDef primary fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d;
     class A source;
     class C0,C1,C2,C3 condition;
-    class D detector;
-    class E,F,G,H analysis;
+    class D1,D2,D3,D4,D5 detector;
+    class E,F,G,H,J analysis;
+    class I primary;
