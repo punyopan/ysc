@@ -4,7 +4,7 @@
 
 **How much does telephone bandwidth limit Thai voice-deepfake detection, and when does detection begin to fail?**
 
-BandGap-TH is a YSC Thailand research proposal. It separates two effects of telephone coding, measures how detection changes as audio bandwidth is reduced, and tests whether training with band-limited audio can recover some of the lost performance.
+BandGap-TH is a YSC Thailand research proposal. It separates two effects of telephone coding such as bandwidth and companding, measures how detection changes as audio bandwidth is reduced, and tests whether training with band-limited audio can recover some of the lost performance.
 
 ## The problem
 
