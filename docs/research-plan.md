@@ -243,6 +243,7 @@ Interpretation:
 - Source-level prediction files for every detector and condition
 - Attribution, dose–response, mitigation, and bootstrap analysis scripts
 - The cutoff curve with collapse thresholds and intervals
+- The sweep demonstration: paired audio and score replay against the curve, running offline from saved predictions
 - Leakage audit, model card, ethics statement, and limitations
 
 See [`feasibility.md`](feasibility.md) for the tiered schedule and [`compute-request.md`](compute-request.md) for the resource estimate.

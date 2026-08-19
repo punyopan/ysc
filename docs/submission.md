@@ -14,13 +14,13 @@ The study applies offline codec transformations to audio files. Real calls also 
 
 **English**
 
-> Bandwidth or Companding? Attributing Telephone-Channel Degradation in Thai Audio Deepfake Detection
+> When Does the Telephone Break Thai Voice-Deepfake Detection? Separating Bandwidth from Companding
 
 **Thai**
 
-> แบนด์วิดท์หรือ companding: การแยกสาเหตุการเสื่อมประสิทธิภาพของระบบตรวจจับเสียงปลอมภาษาไทยบนช่องสัญญาณโทรศัพท์
+> โทรศัพท์ทำให้การตรวจจับเสียงปลอมภาษาไทยล้มเหลวเมื่อใด: การแยกผลของแบนด์วิดท์ออกจาก companding
 
-The question form makes the attribution task clear instead of naming only the general subject area.
+The first clause states what a reader outside the field cares about — whether detection survives a phone call — and the second states the method that makes the answer trustworthy. A title that opens with the attribution alone is accurate but reads to a non-specialist as a comparison between two kinds of signal distortion, which understates what the study is for.
 
 `companding` is left in English, which is common in Thai technical writing. The adviser may prefer a Thai gloss such as *การบีบอัดและขยายสัญญาณแบบลอการิทึม*; either is defensible, but use one consistently across every field.
 
@@ -28,11 +28,28 @@ The question form makes the attribution task clear instead of naming only the ge
 
 | Register | Title |
 | --- | --- |
+| Method-first | Bandwidth or Companding? Attributing Telephone-Channel Degradation in Thai Audio Deepfake Detection |
 | Plainer, application-first | Measuring How Telephone Bandwidth Limits Thai Voice Deepfake Detection |
 | More technical | Separating Bandwidth Limitation from Logarithmic Quantization in Telephone-Band Thai Anti-Spoofing |
 | Punchier | Which Half of the Telephone Breaks Deepfake Detection? |
 
-The last is good as a **poster headline** but too informal for the written entry.
+The method-first form is the right choice if the entry is read mainly by speech-processing specialists. The last is good as a **poster headline** but too informal for the written entry.
+
+## Headline sentence
+
+Every field of the entry, the poster, and the spoken presentation should lead to one sentence of this shape. Fill in the measured values once Tier 1 completes; before then, present it as the question the study answers.
+
+**English**
+
+> Detection crosses its failure threshold below **X** kHz. A conventional Thai telephone path delivers 3.4 kHz. Therefore detectors of this class **are / are not** usable on telephone audio under the tested conditions.
+
+**Thai**
+
+> การตรวจจับข้ามเกณฑ์ล้มเหลวที่ความถี่ต่ำกว่า **X** kHz ขณะที่ช่องสัญญาณโทรศัพท์ไทยแบบทั่วไปส่งผ่านได้ 3.4 kHz ดังนั้นระบบตรวจจับกลุ่มนี้ **ใช้ได้ / ใช้ไม่ได้** กับเสียงโทรศัพท์ภายใต้เงื่อนไขที่ทดสอบ
+
+The attribution, the recovery figure, and the bootstrap intervals are the evidence for that sentence, not competing headlines. State the sentence first and the evidence after it.
+
+Keep the conditional wording. `X` is a measurement that does not exist until the experiment runs, and the sentence is scoped to the tested conditions rather than to real telephone calls.
 
 ## One-sentence topic statement
 
@@ -48,11 +65,11 @@ The last is good as a **poster headline** but too informal for the written entry
 
 ### English (~120 words)
 
-> Voice-cloning scams in Thailand often reach victims by telephone. A conventional G.711 path carries a narrow voice-frequency band of roughly 300–3400 Hz, so some information used by detectors may be missing. Existing studies usually apply the complete codec and report one overall degradation value, combining bandwidth reduction with A-law or μ-law companding. This project estimates their contributions separately using a paired bandwidth-only control. It then varies the low-pass cutoff to measure when detection crosses preregistered failure thresholds and tests whether training with band-limited audio recovers some of the loss. The results will show whether model training is likely to help under the tested conditions or whether missing bandwidth is the larger limitation.
+> Voice-cloning scams in Thailand reach victims by telephone, but the detectors built to catch them are trained and benchmarked on clean wideband audio that no telephone call delivers. A conventional G.711 path carries roughly 300–3400 Hz, so information the detector may rely on can be missing before it ever sees the signal. Existing studies apply the complete codec and report one combined degradation value, mixing bandwidth reduction with A-law or μ-law companding. This project separates them using a paired bandwidth-only control, then varies the low-pass cutoff to find where detection crosses preregistered failure thresholds, and tests whether band-limited training recovers the loss. The separation matters practically: information altered by companding may be recoverable by training, while information removed by bandwidth cannot be, which decides whether a fix belongs in the model or in the transport.
 
 ### Thai (~120 คำ)
 
-> มิจฉาชีพที่ใช้เสียงปลอมในประเทศไทยมักติดต่อเหยื่อทางโทรศัพท์ ช่องสัญญาณ G.711 แบบทั่วไปส่งผ่านเสียงในย่านความถี่แคบประมาณ 300–3400 Hz ทำให้ข้อมูลบางส่วนที่ระบบตรวจจับอาจใช้หายไป งานวิจัยที่ผ่านมามักใช้โคเดกครบทั้งกระบวนการและรายงานค่าการเสื่อมรวมเพียงค่าเดียว ซึ่งรวมผลจากการลดแบนด์วิดท์และ companding แบบ A-law หรือ μ-law โครงงานนี้ประมาณผลของทั้งสองส่วนแยกกันด้วยเงื่อนไขควบคุมเฉพาะแบนด์วิดท์ จากนั้นปรับค่าความถี่ตัดเพื่อวัดว่าประสิทธิภาพข้ามเกณฑ์ล้มเหลวที่กำหนดไว้เมื่อใด และทดสอบว่าการฝึกด้วยเสียงที่จำกัดแบนด์วิดท์ช่วยกู้ประสิทธิภาพกลับมาได้บางส่วนหรือไม่ ผลการทดลองจะช่วยบอกว่าการปรับวิธีฝึกโมเดลมีแนวโน้มช่วยได้ หรือข้อจำกัดหลักมาจากแบนด์วิดท์ที่หายไป
+> มิจฉาชีพที่ใช้เสียงปลอมในประเทศไทยติดต่อเหยื่อทางโทรศัพท์ แต่ระบบตรวจจับที่สร้างขึ้นมารับมือกลับถูกฝึกและวัดผลด้วยเสียง wideband แบบสะอาดซึ่งไม่มีในสายโทรศัพท์จริง ช่องสัญญาณ G.711 แบบทั่วไปส่งผ่านเสียงในย่านประมาณ 300–3400 Hz ข้อมูลที่ระบบตรวจจับอาจใช้จึงอาจหายไปก่อนที่โมเดลจะได้รับสัญญาณด้วยซ้ำ งานวิจัยที่ผ่านมามักใช้โคเดกครบทั้งกระบวนการและรายงานค่าการเสื่อมรวมเพียงค่าเดียว ซึ่งรวมผลจากการลดแบนด์วิดท์เข้ากับ companding แบบ A-law หรือ μ-law โครงงานนี้แยกผลทั้งสองส่วนด้วยเงื่อนไขควบคุมเฉพาะแบนด์วิดท์ จากนั้นปรับค่าความถี่ตัดเพื่อหาจุดที่ประสิทธิภาพข้ามเกณฑ์ล้มเหลวที่กำหนดไว้ล่วงหน้า และทดสอบว่าการฝึกด้วยเสียงที่จำกัดแบนด์วิดท์กู้ประสิทธิภาพกลับมาได้หรือไม่ การแยกผลนี้มีความสำคัญเชิงปฏิบัติ เพราะข้อมูลที่ถูก companding เปลี่ยนแปลงอาจกู้คืนได้ด้วยการฝึกโมเดล แต่ข้อมูลที่ถูกตัดออกไปพร้อมแบนด์วิดท์กู้คืนไม่ได้ ซึ่งเป็นตัวชี้ว่าการแก้ไขควรเกิดที่ตัวโมเดลหรือที่ช่องสัญญาณ
 
 ## Category
 
@@ -74,12 +91,19 @@ State these as measurements to be made, not as results already known.
 - A dose–response curve of detection error against low-pass cutoff, with two preregistered collapse thresholds.
 - A recovery figure for band-limited augmentation, reported alongside its cost on clean audio.
 - A reproducible transformation pipeline and paired evaluation set.
+- A demonstration that replays one utterance at successive cutoffs against the measured curve, running offline from saved predictions.
 
 Do not write that bandwidth is expected to dominate as though it were a finding. It is a prediction, and the project is designed so that the opposite result would be more interesting.
 
 ## Significance statement
 
-> If bandwidth reduction contributes most of the degradation, improving the detector alone may not recover information removed by the channel. Wideband systems such as VoLTE and Opus-based VoIP preserve more frequency content. This project measures how detection changes as bandwidth is reduced, providing evidence that may help guide the design and evaluation of anti-fraud systems for Thai telephone services.
+> The common remedy for channel degradation is channel-aware augmentation: train the detector on degraded audio so it learns to cope. That remedy has room to work only if the damage comes from companding, which alters information still present in the signal. If the damage comes mostly from bandwidth reduction, the information has been removed and training cannot restore it — the fix would have to move to the transport, such as wideband VoLTE or Opus-based VoIP paths. This project measures which of the two dominates and at what cutoff detection fails, providing evidence that bears on whether anti-fraud work for Thai telephone services should invest in better detectors or in wider call bandwidth.
+
+### If a reader says the answer is obvious
+
+Anticipate the objection that bandwidth loss must obviously matter more, and answer it directly rather than in a footnote:
+
+> If it were established, the field would not be investing in codec-aware augmentation as the primary remedy. The attribution has not been reported directly, so the size of each contribution is currently unknown, and the rejection of H1 would be the more consequential outcome because it would mean the loss is trainable. The study is designed so that either result is reportable.
 
 ## Scope limitations to state in the entry
 
@@ -108,4 +132,7 @@ Required by YSC rules. Adapt to the current official form; the version in [`ethi
 - [ ] Expected outcomes written as measurements, not as predicted findings
 - [ ] Scope limitations included rather than omitted
 - [ ] AI-tool disclosure matches the current official form
-- [ ] Student can explain the C1 control and why it makes attribution possible
+- [ ] Student can explain the C1 control and why it makes attribution possible in one breath, without notes
+- [ ] Headline sentence prepared, and every field leads toward it
+- [ ] Answer to the "that is obvious" objection rehearsed
+- [ ] Sweep demonstration runnable offline on the presentation laptop

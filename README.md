@@ -2,13 +2,21 @@
 
 **English** | [ภาษาไทย](README.th.md)
 
-**How much does telephone bandwidth limit Thai voice-deepfake detection, and when does detection begin to fail?**
+**Thai telephone networks carry 300–3400 Hz. Voice-deepfake detectors are trained on 16 kHz audio. This project measures whether detection still works after the network throws most of the signal away, and finds the cutoff where it stops working.**
 
-BandGap-TH is a YSC Thailand research proposal. It separates two effects of telephone coding such as bandwidth and companding, measures how detection changes as audio bandwidth is reduced, and tests whether training with band-limited audio can recover some of the lost performance.
+Voice-cloning scams in Thailand reach victims by telephone. The detectors built to catch them are trained and benchmarked on clean wideband audio that no telephone call delivers. BandGap-TH measures how large that gap is, isolates what causes it, and tests whether it can be trained away.
+
+The study is built to answer one question with a number:
+
+> Detection crosses its failure threshold below **X** kHz. A conventional Thai telephone path delivers 3.4 kHz. Therefore detectors of this class **are / are not** usable on telephone audio under the tested conditions.
+
+`X` is what the experiment measures. Everything else in this repository — the attribution, the cutoff curve, the recovery figure, the bootstrap intervals — is the evidence behind that sentence.
+
+BandGap-TH is a YSC Thailand research proposal.
 
 ## The problem
 
-Thai voice-cloning scams often reach victims by telephone. A conventional G.711 telephone path carries a narrow voice-frequency band of roughly 300–3400 Hz [3]. Some artifacts used to distinguish synthetic speech may lie outside that range, so a detector trained on clean wideband audio may rely on information that is missing from telephone audio.
+A conventional G.711 telephone path carries a narrow voice-frequency band of roughly 300–3400 Hz [3]. Some artifacts used to distinguish synthetic speech may lie outside that range, so a detector trained on clean wideband audio may rely on information that is missing from telephone audio.
 
 Published work shows that codecs can degrade detection [2, 10], and Thai telephony evaluations already exist [4, 12]. However, these studies do not clearly separate two effects that occur together in a G.711 path:
 
@@ -31,7 +39,7 @@ Studies usually apply the complete codec and report one overall result. Measurin
 - **H2 — dose–response:** EER rises monotonically as cutoff falls, with an identifiable collapse threshold.
 - **H3 — mitigation:** band-limited augmentation reduces `ΔEER` relative to an identical clean-trained baseline.
 
-The hypotheses can be supported or rejected. If companding contributes more than expected, channel-aware training may have more room to help. If augmentation provides little or no recovery, the result would be consistent with information loss from bandwidth reduction, although other explanations would still need to be considered.
+The design is symmetric: it is not built to confirm H1. Every hypothesis has a reportable outcome either way, and the thresholds are fixed before scoring so the goalposts cannot move once results arrive. If companding contributes more than expected, channel-aware training may have more room to help. If augmentation provides little or no recovery, the result would be consistent with information loss from bandwidth reduction, although other explanations would still need to be considered.
 
 ## Design
 
@@ -48,7 +56,7 @@ Editable source: [`docs/architecture.mmd`](docs/architecture.mmd)
 | C2 | G.711 μ-law | bandwidth + companding |
 | C3 | G.711 A-law | bandwidth + companding |
 
-C1 is the bandwidth-only control. It removes the high-frequency band while retaining 16-bit linear precision. Comparing C1 with C2 and C3 estimates the additional change associated with companding after bandwidth has already been reduced.
+**C1 is the methodological contribution.** Published work applies the complete codec and reports one combined degradation number. C1 removes the high-frequency band while retaining 16-bit linear precision, so bandwidth reduction occurs without companding. Comparing C1 against C0 isolates the bandwidth effect; comparing C1 against C2 and C3 estimates the additional change associated with companding after bandwidth has already been reduced. Without this control the two causes cannot be separated.
 
 **Sweep set:** a no-filter 16 kHz reference followed by low-pass cutoffs at 6 KHz, 4 KHz, 3.4 KHz, 2.5 KHz, 1.5 KHz, and 800 Hz.
 
@@ -68,9 +76,22 @@ Each contrast uses a paired cluster bootstrap over source recordings. All condit
 
 The cutoff curve will include two preregistered failure thresholds: the cutoff where EER doubles and the cutoff where EER reaches 10%.
 
-## Practical relevance
+## Why the answer matters
 
-If bandwidth reduction contributes most of the degradation, improving the detector alone may not recover information removed by a narrowband channel. Wideband systems such as VoLTE and Opus-based VoIP preserve more frequency content. The cutoff curve will estimate how detection performance changes as that content is removed.
+The common remedy for channel degradation is channel-aware augmentation: train the detector on degraded audio so it learns to cope. That remedy has room to work only if the damage comes from companding, because companding alters information that is still present in the signal. If the damage comes mostly from bandwidth reduction, the information has been removed and training cannot restore it.
+
+| If damage is mostly… | Where a fix would have to act |
+| --- | --- |
+| **Companding** | The model. Channel-aware training and more robust representations have room to help |
+| **Bandwidth** | The transport. Wideband paths such as VoLTE or Opus-based VoIP, because a removed band cannot be trained back |
+
+That distinction bears on whether an anti-fraud effort should invest in better detectors or in wideband call paths, and we found no published study that reports it directly. The cutoff curve attaches a frequency to the question.
+
+## Demonstration
+
+The cutoff sweep doubles as the demonstration and is part of the committed work, not an optional extension. One Thai utterance is played at each cutoff in the sweep set — the 16 kHz reference, then 6 kHz, 4 kHz, 3.4 kHz, 2.5 kHz, 1.5 kHz and 800 Hz — while the detector score is shown against the measured curve, with the 3.4 kHz telephone band edge and the collapse thresholds marked on the frequency axis. It runs on a laptop from the Tier 1 prediction files and needs no GPU, no deployment toolchain, and no optional tier.
+
+Presentation rules are in [`docs/feasibility.md`](docs/feasibility.md): show the score and the frozen operating threshold with its measured error rates, never a bare real/fake verdict, and use only project-owned or dataset-licensed audio.
 
 ## Detector panel
 
@@ -83,7 +104,9 @@ If bandwidth reduction contributes most of the degradation, improving the detect
 
 No new architecture is proposed. The panel exists to show findings are not an artifact of one model.
 
-## What this project will not claim
+## Scope boundaries
+
+These boundaries are set in advance and frozen with the protocol, so the claims cannot expand after the results arrive.
 
 - It will not claim to study **real telephony**. Real calls add packet loss, jitter, transcoding, handset characteristics, room acoustics and gain control — none are studied here. This is offline simulated G.711.
 - It will not claim to be the first Thai telephony evaluation, which is [4, 12].

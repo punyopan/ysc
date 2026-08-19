@@ -10,11 +10,13 @@ The plan has three tiers. Tier 1 is the committed study and contains the main co
 
 | Tier | Weeks | Contains | Delivers |
 | --- | --- | --- | --- |
-| **1 — core** | 1–7 | Decomposition set C0–C3, sweep set, LFCC-GMM, AASIST-L, AASIST | Attribution result, cutoff curve with collapse thresholds, threshold-transfer check |
+| **1 — core** | 1–8 | Decomposition set C0–C3, sweep set, LFCC-GMM, AASIST-L, AASIST, sweep demonstration | Attribution result, cutoff curve with collapse thresholds, threshold-transfer check, laptop demonstration |
 | **2 — mitigation** | 7–9 | AASIST-L retrained with band-limited augmentation | Recovery figure and the cost of augmentation on clean audio |
-| **3 — optional** | 9–11 | WavLM + AASIST back-end; on-device export and demo | Whether SSL pretraining changes the curve; deployment measurement |
+| **3 — optional** | 9–11 | WavLM + AASIST back-end; on-device export | Whether SSL pretraining changes the curve; deployment measurement |
 
-Tier 1 is designed to stand on its own. It contains the bandwidth-versus-companding attribution and can run on a single consumer GPU. Tier 2 tests a possible mitigation, while Tier 3 is optional.
+Tier 1 is designed to stand on its own. It contains the bandwidth-versus-companding attribution, the cutoff curve, and the demonstration built from it, and can run on a single consumer GPU. Tier 2 tests a possible mitigation, while Tier 3 is optional.
+
+The demonstration is deliberately placed in Tier 1 rather than in the optional tier. It replays the sweep from saved Tier 1 predictions and needs no GPU, no deployment toolchain, and no additional training, so nothing that can be cut removes it.
 
 ### Go/no-go gates
 
@@ -41,7 +43,7 @@ Before requesting any allocation, a week-4 pilot measures peak GPU memory, examp
 2. Complete LFCC-GMM first; it validates the whole scoring pipeline end to end.
 3. Complete AASIST-L, then AASIST.
 4. Run Tier 2 augmentation on AASIST-L only.
-5. Drop Tier 3 first if compute is short.
+5. Drop Tier 3 first if compute is short. The sweep demonstration is unaffected: it replays saved predictions.
 6. Report any incomplete detector as missing rather than extrapolating.
 
 The attribution result and cutoff curve require trained detectors to be scored across the conditions, but the sweep itself adds no further training. If compute is reduced, the team can keep the core analysis and evaluate fewer optional models.
@@ -69,9 +71,9 @@ The attribution result and cutoff curve require trained detectors to be scored a
 | 5 | AASIST-L training | Frozen configuration produces C0 scores |
 | 6 | AASIST training | Frozen configuration produces C0 scores |
 | 7 | Freeze models and thresholds; score all conditions | **G2:** predictions exist for every valid source-condition pair |
-| 8 | Attribution analysis and cutoff curve | Tables and curves reproduce directly from saved predictions |
+| 8 | Attribution analysis, cutoff curve, and sweep demonstration built from saved predictions | Tables and curves reproduce directly from saved predictions; demonstration runs offline on a laptop |
 | 9 | Tier 2 — AASIST-L with band-limited augmentation, scored on all conditions | **G3:** recovery figure and clean-audio cost reported |
-| 10–11 | Tier 3 if gates permit — WavLM system, on-device export, demo | **G4:** completes cleanly or is reported as not attempted |
+| 10–11 | Tier 3 if gates permit — WavLM system, on-device export | **G4:** completes cleanly or is reported as not attempted |
 | 12 | Error analysis, report, model card, limitations, demo rehearsal | Claims match preregistered scope and intervals |
 
 ## Minimum viable completion
@@ -80,6 +82,7 @@ The attribution result and cutoff curve require trained detectors to be scored a
 - At least two detectors scored across all conditions
 - Attribution result with paired bootstrap intervals
 - Cutoff curve with at least one collapse threshold and its interval
+- The sweep demonstration, replayable offline from saved predictions
 - Fixed-threshold error rates
 - An explicit limitations section stating what was not attempted
 
@@ -87,9 +90,13 @@ Real calls, messaging applications, packet loss, replay, and unseen generators a
 
 ## Demonstration
 
-If Tier 3 completes, the deployment arm doubles as the competition demonstration: AASIST-L running on the target device, scoring band-limited and G.711-coded Thai audio in real time, shown alongside the cutoff curve.
+The demonstration is the cutoff sweep itself, and it is committed work in Tier 1.
 
-The demonstration can play the same utterance at successive cutoffs while showing how the detector score changes.
+One Thai utterance is replayed at successive cutoffs — the 16 kHz reference, then 6 kHz, 4 kHz, 3.4 kHz, 2.5 kHz, 1.5 kHz and 800 Hz — while the detector score for that utterance is plotted against the measured cutoff curve, with the 3.4 kHz telephone band edge and the collapse thresholds marked on the frequency axis. The audio makes the degradation audible and the curve makes the consequence visible at the same moment.
+
+Requirements are deliberately small: the transformed sweep audio, the saved source-level predictions, and a plotting script. No GPU, no live inference, no export toolchain, and no optional tier. It survives every branch of the compute fallback because it replays results that already exist.
+
+If Tier 3 also completes, the deployment arm extends the demonstration rather than replacing it: AASIST-L running on the target device, scoring band-limited and G.711-coded Thai audio in real time alongside the same curve.
 
 Presentation rules:
 
