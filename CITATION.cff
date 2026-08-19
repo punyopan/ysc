@@ -10,12 +10,11 @@ license: MIT
 version: 0.5.0
 date-released: 2026-08-19
 abstract: >-
-  A focused research proposal separating the two things a telephone codec does
-  to audio — low-pass filtering and logarithmic requantization — which published
-  work applies together and reports as a single degradation figure. Measures
-  which half causes the loss in Thai audio-deepfake detection, sweeps the
-  low-pass cutoff to locate a collapse threshold, and tests whether band-limited
-  training recovers the loss.
+  A research proposal estimating how bandwidth reduction and logarithmic
+  companding contribute to degradation in Thai audio-deepfake detection under
+  simulated G.711 conditions. The study measures detection performance across
+  low-pass cutoff frequencies and tests whether training with band-limited
+  audio recovers some of the lost performance.
 keywords:
   - audio deepfake detection
   - Thai speech
