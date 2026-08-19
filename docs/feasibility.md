@@ -4,7 +4,7 @@
 
 BandGap-TH asks where telephone-channel damage to Thai audio-deepfake detection comes from, how much bandwidth detection survives, and whether band-limited training recovers the loss.
 
-The plan is **tiered**. Tier 1 is the committed study and contains the original contribution. Tiers 2 and 3 are extensions with explicit go/no-go gates. Stopping at a gate is a preregistered decision, not a failure, and the report states plainly which tiers completed.
+The plan has three tiers. Tier 1 is the committed study and contains the main contribution. Tiers 2 and 3 are extensions with explicit go/no-go gates. The report will state which tiers were completed and why work stopped at any gate.
 
 ## Tier structure
 
@@ -14,7 +14,7 @@ The plan is **tiered**. Tier 1 is the committed study and contains the original 
 | **2 — mitigation** | 7–9 | AASIST-L retrained with band-limited augmentation | Recovery figure and the cost of augmentation on clean audio |
 | **3 — optional** | 9–11 | WavLM + AASIST back-end; on-device export and demo | Whether SSL pretraining changes the curve; deployment measurement |
 
-**Tier 1 alone is a complete, defensible project.** It contains the bandwidth-versus-companding attribution, which is the piece not done in any language, and it runs on a single consumer GPU. Tier 2 turns diagnosis into an attempted remedy. Tier 3 is genuinely optional.
+Tier 1 is designed to stand on its own. It contains the bandwidth-versus-companding attribution and can run on a single consumer GPU. Tier 2 tests a possible mitigation, while Tier 3 is optional.
 
 ### Go/no-go gates
 
@@ -25,11 +25,11 @@ The plan is **tiered**. Tier 1 is the committed study and contains the original 
 | **G3** | 9 | Tier 1 analysis is complete and reproduces from saved predictions | Stop at Tier 1 and write up. Do not start Tier 3 |
 | **G4** | 11 | Tier 3 completes cleanly | Report as not attempted; it is declared optional from the start |
 
-Work is written up as it completes. A finished Tier 1 with an explicit statement of what was not attempted is worth more than a half-finished Tier 3.
+Results will be documented as each tier is completed. The team will finish and report Tier 1 before starting optional work.
 
 ## Compute plan
 
-Tier 1 is deliberately light. Channel and sweep generation are CPU-only. LFCC-GMM is CPU. AASIST-L and AASIST are small enough to train on a single modest GPU. Tier 2 adds one retraining run of an already-working architecture. Only Tier 3's WavLM system needs substantial GPU time.
+Channel and sweep generation run on CPU, as does LFCC-GMM. AASIST-L and AASIST should fit on one modest GPU. Tier 2 adds another training configuration for AASIST-L, while the optional WavLM system in Tier 3 requires the most GPU time.
 
 The intended production resource is the ThaiSC LANTA supercomputer, subject to allocation, but **LANTA is not required for Tier 1 or Tier 2** — it shortens them. See [`compute-request.md`](compute-request.md) for the estimate and the access route.
 
@@ -44,7 +44,7 @@ Before requesting any allocation, a week-4 pilot measures peak GPU memory, examp
 5. Drop Tier 3 first if compute is short.
 6. Report any incomplete detector as missing rather than extrapolating.
 
-The attribution result and the cutoff curve depend only on scoring frozen detectors across conditions. They survive almost any compute reduction, because inference is cheap and the sweep adds no training at all.
+The attribution result and cutoff curve require trained detectors to be scored across the conditions, but the sweep itself adds no further training. If compute is reduced, the team can keep the core analysis and evaluate fewer optional models.
 
 ## Risks
 
@@ -89,7 +89,7 @@ Real calls, messaging applications, packet loss, replay, and unseen generators a
 
 If Tier 3 completes, the deployment arm doubles as the competition demonstration: AASIST-L running on the target device, scoring band-limited and G.711-coded Thai audio in real time, shown alongside the cutoff curve.
 
-The most effective demonstration is the curve itself — playing the same utterance at successive cutoffs so a judge hears the band disappearing while watching the score move.
+The demonstration can play the same utterance at successive cutoffs while showing how the detector score changes.
 
 Presentation rules:
 

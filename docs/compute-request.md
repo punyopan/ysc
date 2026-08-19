@@ -2,16 +2,16 @@
 
 ## Status of the numbers in this document
 
-**Every figure below is a preliminary estimate, not a measurement.** They exist so that a resource request can name a specific, bounded number instead of asking open-endedly for GPUs. They are order-of-magnitude only.
+Every figure below is a preliminary estimate rather than a measurement. The estimates provide a bounded starting point for a resource request and should be treated only as order-of-magnitude values.
 
 The week-4 compute pilot in [`feasibility.md`](feasibility.md) exists specifically to replace these estimates with measured values — peak GPU memory, examples per second, epoch time, and storage — before any full allocation is committed. Nothing in this file should be copied into the YSC proposal as a resource claim; the proposal reports measured pilot usage.
 
 ## Access route
 
-ThaiSC requires the Principal Investigator to be a faculty adviser for educational-institution projects, so a student cannot hold an allocation directly. Two routes exist:
+ThaiSC requires the principal investigator for an educational-institution project to be a faculty adviser, so the student cannot hold the allocation directly. Two possible routes are:
 
-1. **Join an existing project as a team member.** The normal route for this project. Usage draws down the host project's SHr budget, which is why the request below is stated as a bounded number.
-2. **LANTA Proof of Concept.** Free trial, but a poor fit here: 45-day validity, maximum three team members, and it requires that no participant has registered for LANTA before.
+1. **Join an existing project as a team member.** This is the preferred route. Usage would count against the host project's SHr budget, so the request below gives a bounded estimate.
+2. **LANTA Proof of Concept.** This is a free trial with a 45-day validity period, a maximum of three team members, and an eligibility condition that no participant has registered for LANTA before. These restrictions may make it less suitable for this study.
 
 Either way the adviser, not the student, is the PI.
 
@@ -52,23 +52,23 @@ Costs are given per tier, because Tier 1 is the committed study and the later ti
 
 **Requested: approximately 300 SHr for all three tiers, or approximately 160 SHr for Tiers 1 and 2 alone.**
 
-At the Thai government/education rate this is on the order of a single minimum-size LANTA project. The request is small by design.
+At the Thai government and education rate, this is approximately the size of one minimum LANTA project. The week-4 pilot will replace this estimate with measured usage.
 
-**Tier 1 does not require LANTA.** It runs on a single consumer GPU; an allocation shortens it rather than enabling it. This is worth stating plainly in any request, because it means the project cannot be blocked by an allocation decision.
+Tier 1 is planned to run on a single consumer GPU. A LANTA allocation would shorten the work but is not required to begin the core study.
 
 ### Storage
 
-Approximately 40 GB. The sweep multiplies conditions but applies to the test partition only — no training uses sweep audio — so the cost is eleven conditions over ~10,000 test sources plus a single clean copy of the training partition. Not a parallel-filesystem-scale requirement.
+The preliminary storage estimate is 40 GB. The sweep applies only to the test partition, so storage covers eleven conditions for about 10,000 test sources plus one clean copy of the training partition. The pilot must verify this estimate before the request is finalized.
 
 ## What drives the cost up
 
-Three decisions dominate the budget, each preregistered so the number cannot drift.
+Three decisions account for most of the estimated budget:
 
 1. **Corpus size.** The Chula Spoofed Speech dataset contains roughly 1.33 million utterances. Using all of it would raise storage and compute by roughly 25× without improving a design that needs speaker-disjoint paired splits rather than maximum volume.
 2. **Seed count.** Three seeds triples the neural budget. If the host allocation is tight, the declared fallback is one seed for Tier 3, declared before final scoring rather than after.
 3. **Node packing.** A GPU node bills as four A100s whether or not all four are used. Seed replicates and independent detector runs are packed onto a single node; running one job per node wastes roughly 75% of the charge.
 
-The sweep, notably, is **not** a cost driver. It adds inference conditions only — no training runs on sweep audio — so seven extra cutoff points cost a few node-hours of scoring.
+The sweep adds inference conditions but no additional training runs, so its estimated cost is limited to several node-hours of scoring.
 
 ## Graceful degradation
 
@@ -97,11 +97,11 @@ To adapt before sending — replace the bracketed parts and have the adviser rev
 
 > Dear [name],
 >
-> I am a YSC entrant working with [adviser name] at [school] on BandGap-TH, a study of Thai audio-deepfake detection under telephone-band conditions. A telephone codec does two things at once — it low-pass filters away everything above about 3.4 kHz, and it requantizes to 8-bit logarithmic. Published work applies the codec whole and reports a single degradation figure, so nobody knows which half causes the damage. The distinction decides whether the problem is fixable in software or is a limit of the network: if the evidence is filtered away it no longer exists, whereas quantization noise is recoverable. We measure the split, sweep the cutoff to find where detection collapses, and test whether band-limited training wins the loss back. This matters for Thailand because voice-cloning scams arrive over narrowband telephone calls.
+> I am a YSC entrant working with [adviser name] at [school] on BandGap-TH, a study of Thai audio-deepfake detection under simulated telephone-band conditions. A G.711 path combines bandwidth reduction with 8-bit logarithmic companding. Published work usually reports their combined effect, so this project estimates the two contributions separately. It also varies the low-pass cutoff to measure when detection crosses predefined failure thresholds and tests whether training with band-limited audio recovers some of the loss. The question matters in Thailand because voice-cloning scams often reach victims through telephone calls.
 >
 > I would like to ask whether I could run this as a team member under an existing project, rather than requesting a separate allocation.
 >
-> The request is small and bounded: approximately **300 SHr including contingency** for the full plan, or about **160 SHr** for the two committed tiers, and roughly **40 GB** of storage. The core study runs on a single consumer GPU — an allocation would shorten it rather than enable it — and only one optional configuration requires substantial GPU training. A full breakdown is at [repository link].
+> The preliminary request is approximately **300 SHr including contingency** for the full plan, or about **160 SHr** for the two committed tiers, with roughly **40 GB** of storage. The core study is designed to run on a single consumer GPU, while one optional configuration requires more substantial GPU training. A full breakdown is available at [repository link].
 >
 > These are preliminary estimates. I plan a pilot in week 4 to measure actual peak memory, throughput, and epoch time, and I will report measured figures back before scaling up. The study is tiered with explicit stopping points, so a tighter allocation simply means completing fewer tiers rather than failing.
 >

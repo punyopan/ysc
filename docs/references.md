@@ -1,6 +1,6 @@
 # References
 
-Numbers are stable citation keys used throughout the other documents. They are written as explicit labels rather than an auto-numbered list so that the keys do not shift.
+The numbered labels are fixed so citations remain consistent across the repository.
 
 ## Benchmark generalization and channel robustness
 

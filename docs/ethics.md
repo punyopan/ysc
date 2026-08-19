@@ -55,7 +55,7 @@ Every condition must be applied symmetrically to genuine and spoof audio. Asymme
 
 ## On-device deployment and public demonstration
 
-The deployment arm exports one small detector to a physical device and runs it in public at the competition. That creates obligations the offline experiment does not.
+The optional deployment experiment runs one small detector on a physical device during the competition. A public demonstration requires safeguards beyond those used for the offline experiment.
 
 - Demonstrate only on project-owned audio or audio whose license permits public playback. Restricted dataset audio must not be played at a booth unless the license explicitly allows it.
 - Never capture, score, or record a visitor's, judge's, or bystander's voice without their explicit prior consent, and do not retain any such audio.
@@ -77,7 +77,7 @@ Exported model files inherit the release considerations in the misuse section be
 
 ## Misuse and release
 
-The study primarily measures detector fragility. Detailed adversarial optimization recipes are outside scope. Before releasing checkpoints or source-level scores, assess whether they expose restricted voices, enable impersonation, or facilitate evasion. Defensive analysis and aggregate results should be released before higher-risk artifacts.
+The study measures where detectors lose accuracy. Detailed methods for optimizing attacks against a detector are outside the scope. Before releasing checkpoints or source-level scores, the team must assess whether they expose restricted voices, enable impersonation, or make evasion easier. Aggregate results and defensive analysis should be released before higher-risk artifacts.
 
 ## Research integrity and AI-tool disclosure
 

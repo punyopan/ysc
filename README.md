@@ -2,30 +2,28 @@
 
 **English** | [ภาษาไทย](README.th.md)
 
-**Is the telephone destroying the evidence needed to detect Thai voice deepfakes — and how much bandwidth can you lose before detection fails?**
+**How much does telephone bandwidth limit Thai voice-deepfake detection, and when does detection begin to fail?**
 
-BandGap-TH is a YSC Thailand research proposal. It separates the two things a telephone codec does to audio, measures how much bandwidth Thai deepfake detection can survive, and tests whether training on band-limited audio wins the loss back.
+BandGap-TH is a YSC Thailand research proposal. It separates two effects of telephone coding, measures how detection changes as audio bandwidth is reduced, and tests whether training with band-limited audio can recover some of the lost performance.
 
 ## The problem
 
-Thai voice-cloning scams arrive by telephone, and the telephone path is narrowband — G.711 restricts the signal to roughly 300–3400 Hz [3]. Most vocoder and TTS artifacts concentrate *above* that range. A detector trained on clean wideband audio may be relying on evidence the network deletes before the call arrives.
+Thai voice-cloning scams often reach victims by telephone. A conventional G.711 telephone path carries a narrow voice-frequency band of roughly 300–3400 Hz [3]. Some artifacts used to distinguish synthetic speech may lie outside that range, so a detector trained on clean wideband audio may rely on information that is missing from telephone audio.
 
-Published work shows codecs degrade detection [2, 10], and Thai telephony evaluation already exists [4, 12]. **What nobody separates is why.** A telephone codec does two independent things at once:
+Published work shows that codecs can degrade detection [2, 10], and Thai telephony evaluations already exist [4, 12]. However, these studies do not clearly separate two effects that occur together in a G.711 path:
 
 | | What it does | Consequence |
 | --- | --- | --- |
-| **Bandwidth reduction** | Low-pass filters away everything above ~3.4 kHz | The evidence is **deleted**. No training recovers it |
-| **Companding** | Requantizes 16-bit linear → 8-bit logarithmic (A-law/μ-law) | The evidence **survives** under quantization noise. Recoverable |
+| **Bandwidth reduction** | Removes frequencies above roughly 3.4 kHz | Information in the removed band is no longer available to the detector |
+| **Companding** | Requantizes 16-bit linear audio to 8-bit logarithmic A-law or μ-law | Information remains, but the signal is changed by quantization |
 
-Every published study applies the codec whole and reports one number — the sum of both. Which one dominates decides whether this problem is fixable in software or is a limit of the infrastructure.
+Studies usually apply the complete codec and report one overall result. Measuring the two contributions separately can show whether model training is likely to help or whether missing bandwidth is the larger limitation.
 
 ## Research questions
 
-1. **Attribution** — Of the EER increase caused by simulated G.711 coding on Thai audio, how much comes from bandwidth and how much from companding?
-2. **Dose–response** — How much bandwidth can be removed before detection collapses, and at what cutoff?
-3. **Mitigation** — Does training on band-limited audio recover the loss, and by how much?
-
-Diagnosis, quantification, attempted remedy.
+1. **Attribution:** Of the EER increase caused by simulated G.711 coding on Thai audio, how much is associated with bandwidth reduction and how much with companding?
+2. **Dose-response:** How does detection change as the low-pass cutoff is reduced, and at what cutoff does performance cross the preregistered failure thresholds?
+3. **Mitigation:** Does training with band-limited audio recover some of the loss, and by how much?
 
 ## Hypotheses
 
@@ -33,7 +31,7 @@ Diagnosis, quantification, attempted remedy.
 - **H2 — dose–response:** EER rises monotonically as cutoff falls, with an identifiable collapse threshold.
 - **H3 — mitigation:** band-limited augmentation reduces `ΔEER` relative to an identical clean-trained baseline.
 
-Every outcome is informative. If companding turns out to dominate, the problem is far more tractable than expected — more surprising and more useful than the predicted answer. If augmentation recovers nothing, that is direct evidence the loss is informational, which strengthens the bandwidth interpretation.
+The hypotheses can be supported or rejected. If companding contributes more than expected, channel-aware training may have more room to help. If augmentation provides little or no recovery, the result would be consistent with information loss from bandwidth reduction, although other explanations would still need to be considered.
 
 ## Design
 
@@ -41,7 +39,7 @@ Every outcome is informative. If companding turns out to dominate, the problem i
 
 Editable source: [`docs/architecture.mmd`](docs/architecture.mmd)
 
-**Decomposition set** — every test source produces all four, paired:
+**Decomposition set:** every test source produces four paired conditions:
 
 | ID | Condition | Contains |
 | --- | --- | --- |
@@ -50,11 +48,11 @@ Editable source: [`docs/architecture.mmd`](docs/architecture.mmd)
 | C2 | G.711 μ-law | bandwidth + companding |
 | C3 | G.711 A-law | bandwidth + companding |
 
-**C1 is the control that makes the whole project possible.** It strips the high band while keeping full 16-bit precision, so subtracting it isolates companding. Without C1 only the sum is observable — which is exactly why this has never been measured.
+C1 is the bandwidth-only control. It removes the high-frequency band while retaining 16-bit linear precision. Comparing C1 with C2 and C3 estimates the additional change associated with companding after bandwidth has already been reduced.
 
-**Sweep set** — low-pass cutoff at 8000, 6000, 4000, 3400, 2500, 1500, 800 Hz.
+**Sweep set:** a no-filter 16 kHz reference followed by low-pass cutoffs at 6000, 4000, 3400, 2500, 1500, and 800 Hz.
 
-The sweep **never changes sample rate**. Everything stays at 16 kHz and only the filter cutoff varies, so the resampler is removed from the experiment rather than merely controlled for. The decomposition set must round-trip through 8 kHz because G.711 requires it; the sweep does not, so it doesn't.
+The sweep keeps the sample rate fixed at 16 kHz and changes only the filter cutoff. This avoids introducing resampling as another variable. The decomposition set still requires an 8 kHz round trip to represent G.711, but the sweep does not.
 
 ## Primary outcomes
 
@@ -66,17 +64,13 @@ Attribution gap = Bandwidth part − Companding part
 Recovery = (ΔEER_baseline − ΔEER_augmented) / ΔEER_baseline
 ```
 
-Each contrast uses a paired cluster bootstrap over source recordings — the sample size is the number of recordings, not the number of conditions, which is what makes these well powered.
+Each contrast uses a paired cluster bootstrap over source recordings. All conditions created from the same recording move together in each bootstrap sample.
 
-Plus the cutoff curve with two preregistered collapse thresholds: where EER doubles, and where EER reaches 10%.
+The cutoff curve will include two preregistered failure thresholds: the cutoff where EER doubles and the cutoff where EER reaches 10%.
 
-## Why it matters beyond the lab
+## Practical relevance
 
-If bandwidth dominates, the finding has an infrastructural consequence:
-
-> **Narrowband telephony is actively destroying the evidence needed to detect voice fraud.**
-
-Wideband codecs — VoLTE, Opus-based VoIP — preserve the band where the artifacts live. The cutoff curve quantifies exactly how much detection capability legacy narrowband call infrastructure throws away.
+If bandwidth reduction contributes most of the degradation, improving the detector alone may not recover information removed by a narrowband channel. Wideband systems such as VoLTE and Opus-based VoIP preserve more frequency content. The cutoff curve will estimate how detection performance changes as that content is removed.
 
 ## Detector panel
 

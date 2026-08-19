@@ -1,12 +1,12 @@
 # YSC Submission Text
 
-Ready-to-adapt text for competition forms. **Every field must be reviewed and approved by the student researcher and adviser before submission** — this is drafting support, not a finished entry. Verify all numbers and citations against primary sources first.
+Draft text for the competition forms. The student researcher and adviser must review and approve every field before submission. All numbers and citations must also be checked against the primary sources.
 
 ## Wording rule that applies everywhere
 
 Say **"G.711 telephone coding"**, **"telephone-band conditions"**, or **"simulated telephone channel"**. Never say **"real telephony"** or **"real phone calls"**.
 
-The study applies offline codec transformations to audio files. Real calls additionally involve packet loss, jitter, transcoding between networks, handset microphone characteristics, room acoustics, and automatic gain control — none of which are studied. A judge who notices that gap in a form field will doubt the rest of the entry, and the distinction is easy to keep.
+The study applies offline codec transformations to audio files. Real calls also involve packet loss, jitter, transcoding between networks, handset characteristics, room acoustics, and automatic gain control. These factors are not studied here, so the wording must keep simulated conditions separate from real calls.
 
 ## Title
 
@@ -20,7 +20,7 @@ The study applies offline codec transformations to audio files. Real calls addit
 
 > แบนด์วิดท์หรือ companding: การแยกสาเหตุการเสื่อมประสิทธิภาพของระบบตรวจจับเสียงปลอมภาษาไทยบนช่องสัญญาณโทรศัพท์
 
-The question form states the contribution — attribution — rather than the subject area, so a reader knows immediately what will be answered.
+The question form makes the attribution task clear instead of naming only the general subject area.
 
 `companding` is left in English, which is common in Thai technical writing. The adviser may prefer a Thai gloss such as *การบีบอัดและขยายสัญญาณแบบลอการิทึม*; either is defensible, but use one consistently across every field.
 
@@ -48,15 +48,15 @@ The last is good as a **poster headline** but too informal for the written entry
 
 ### English (~120 words)
 
-> Voice-cloning scams in Thailand arrive by telephone, where G.711 restricts audio to roughly 300–3400 Hz — removing the frequency range where most synthesis artifacts occur. Existing studies apply telephone codecs whole and report a single degradation figure, which combines two independent effects: bandwidth reduction, which deletes information permanently, and companding, which adds recoverable quantization noise. This project separates them using a paired control condition that removes bandwidth without companding, then sweeps the low-pass cutoff to locate the point where detection collapses, and finally tests whether training on band-limited audio recovers the loss. The distinction determines whether telephone-channel deepfake detection can be improved through training or is limited by the network itself.
+> Voice-cloning scams in Thailand often reach victims by telephone. A conventional G.711 path carries a narrow voice-frequency band of roughly 300–3400 Hz, so some information used by detectors may be missing. Existing studies usually apply the complete codec and report one overall degradation value, combining bandwidth reduction with A-law or μ-law companding. This project estimates their contributions separately using a paired bandwidth-only control. It then varies the low-pass cutoff to measure when detection crosses preregistered failure thresholds and tests whether training with band-limited audio recovers some of the loss. The results will show whether model training is likely to help under the tested conditions or whether missing bandwidth is the larger limitation.
 
 ### Thai (~120 คำ)
 
-> มิจฉาชีพที่ใช้เสียงปลอมในประเทศไทยติดต่อเหยื่อผ่านโทรศัพท์ ซึ่ง G.711 จำกัดสัญญาณเสียงไว้ที่ราว 300–3400 Hz อันเป็นการตัดย่านความถี่ที่ร่องรอยของการสังเคราะห์เสียงส่วนใหญ่ปรากฏอยู่ งานวิจัยที่ผ่านมาใช้โคเดกโทรศัพท์ทั้งก้อนแล้วรายงานค่าการเสื่อมเพียงค่าเดียว ซึ่งรวมผลสองอย่างที่เป็นอิสระต่อกันไว้ด้วยกัน คือการลดแบนด์วิดท์ที่ลบสารสนเทศทิ้งอย่างถาวร และ companding ที่เพิ่ม quantization noise ซึ่งกู้คืนได้ โครงงานนี้แยกสองปัจจัยดังกล่าวด้วยเงื่อนไขควบคุมแบบจับคู่ที่ลดแบนด์วิดท์โดยไม่มี companding จากนั้นกวาดค่าความถี่ตัดเพื่อหาจุดที่การตรวจจับพัง และทดสอบว่าการฝึกด้วยเสียงที่ถูกจำกัดแบนด์วิดท์กู้ความสามารถกลับมาได้หรือไม่ ความแตกต่างนี้ชี้ว่าการตรวจจับเสียงปลอมบนช่องสัญญาณโทรศัพท์จะพัฒนาได้ด้วยการฝึกโมเดล หรือถูกจำกัดโดยตัวเครือข่ายเอง
+> มิจฉาชีพที่ใช้เสียงปลอมในประเทศไทยมักติดต่อเหยื่อทางโทรศัพท์ ช่องสัญญาณ G.711 แบบทั่วไปส่งผ่านเสียงในย่านความถี่แคบประมาณ 300–3400 Hz ทำให้ข้อมูลบางส่วนที่ระบบตรวจจับอาจใช้หายไป งานวิจัยที่ผ่านมามักใช้โคเดกครบทั้งกระบวนการและรายงานค่าการเสื่อมรวมเพียงค่าเดียว ซึ่งรวมผลจากการลดแบนด์วิดท์และ companding แบบ A-law หรือ μ-law โครงงานนี้ประมาณผลของทั้งสองส่วนแยกกันด้วยเงื่อนไขควบคุมเฉพาะแบนด์วิดท์ จากนั้นปรับค่าความถี่ตัดเพื่อวัดว่าประสิทธิภาพข้ามเกณฑ์ล้มเหลวที่กำหนดไว้เมื่อใด และทดสอบว่าการฝึกด้วยเสียงที่จำกัดแบนด์วิดท์ช่วยกู้ประสิทธิภาพกลับมาได้บางส่วนหรือไม่ ผลการทดลองจะช่วยบอกว่าการปรับวิธีฝึกโมเดลมีแนวโน้มช่วยได้ หรือข้อจำกัดหลักมาจากแบนด์วิดท์ที่หายไป
 
 ## Category
 
-**Computer Science** (วิทยาการคอมพิวเตอร์) is the natural fit — the core is a controlled measurement study.
+**Computer Science** (วิทยาการคอมพิวเตอร์) is the best fit because the core project is a controlled evaluation of detection systems.
 
 Engineering would be defensible only if Tier 3 completes and the entry leads with on-device deployment. Since Tier 3 is explicitly optional, do not choose a category that depends on it.
 
@@ -79,11 +79,11 @@ Do not write that bandwidth is expected to dominate as though it were a finding.
 
 ## Significance statement
 
-> If bandwidth reduction dominates, the evidence required to detect voice fraud is being destroyed by the telephone network before detection is attempted, and no amount of model training recovers it. Wideband codecs such as VoLTE and Opus-based VoIP preserve that frequency range. This project quantifies how much detection capability narrowband call infrastructure discards, which is information relevant to how anti-fraud systems for Thai telephone networks should be designed.
+> If bandwidth reduction contributes most of the degradation, improving the detector alone may not recover information removed by the channel. Wideband systems such as VoLTE and Opus-based VoIP preserve more frequency content. This project measures how detection changes as bandwidth is reduced, providing evidence that may help guide the design and evaluation of anti-fraud systems for Thai telephone services.
 
 ## Scope limitations to state in the entry
 
-Including these strengthens rather than weakens the submission — they demonstrate that the design is understood.
+These limitations should be stated directly so the entry does not imply a broader study than the protocol supports.
 
 - The study uses offline simulated G.711 coding, not real telephone calls.
 - Real calls additionally involve packet loss, jitter, transcoding, handset characteristics, room acoustics, and gain control, none of which are studied.

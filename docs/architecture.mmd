@@ -12,7 +12,7 @@ flowchart TB
 
     subgraph SW [Sweep set — dose-response, fixed 16 kHz throughout]
         direction LR
-        S1[8000 Hz] --- S2[6000] --- S3[4000] --- S4[3400] --- S5[2500] --- S6[1500] --- S7[800]
+        S1[No filter<br/>16 kHz reference] --- S2[6000 Hz] --- S3[4000] --- S4[3400] --- S5[2500] --- S6[1500] --- S7[800]
     end
 
     DEC --> D[Frozen detectors<br/>LFCC-GMM · AASIST-L · AASIST<br/>+ WavLM+AASIST, optional]
