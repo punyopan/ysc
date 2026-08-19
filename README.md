@@ -2,35 +2,56 @@
 
 **English** | [ภาษาไทย](README.th.md)
 
-**Does the accuracy–compute frontier for Thai audio-deepfake detection get steeper over the telephone channel?**
+**Does Thai telephone-channel robustness come from model size or from self-supervised pretraining — and can a phone-sized detector inherit it?**
 
-ScaleGap-TH is a focused YSC Thailand research proposal. It measures how the accuracy cost of shrinking a Thai voice-spoofing detector changes when the audio arrives through a G.711 telephone channel instead of a clean microphone, and whether a detector small enough to run on a phone or a single-board computer still works under that channel.
+ScaleGap-TH is a focused YSC Thailand research proposal. It separates two factors that the audio-deepfake literature has left entangled, measures them under a controlled G.711 telephone channel on Thai speech, and checks whether the resulting small detector actually runs on affordable hardware.
 
 ## Research question
 
-> Does G.711 telephone coding degrade small-capacity Thai audio-deepfake detectors more than large-capacity ones?
+> Does Thai telephone-channel robustness in audio-deepfake detection come from model size or from self-supervised pretraining, and can a phone-sized detector inherit it?
 
-Thai voice-cloning scams arrive over the telephone, and the telephone path is narrowband: G.711 low-pass filters the signal to roughly 3.4 kHz. Most vocoder and TTS artifacts concentrate above that band. A high-capacity detector may retain redundant cues below 3.4 kHz; a small detector may have spent its entire capacity on the band that the channel deletes. If that is true, the standard deployment advice — use a small model at the edge — fails precisely where it is needed.
+### Why the question exists
 
-### Why this is not already answered
+On clean benchmark data, model size barely matters. AASIST reports 0.83% EER on ASVspoof 2019 LA at 297K parameters; AASIST-L reports 0.99% at 85K [7]. A 3.5× reduction costs 0.16 percentage points.
 
-Prior work establishes each half of the question separately, but not the interaction:
+Away from the benchmark the picture inverts. Detectors below 1% EER in-domain reach 30–60% on in-the-wild corpora, and RawNet2 exceeds 40% on most out-of-distribution sets, while large self-supervised systems stay in the 7–9% range [20, 21].
 
-- **Benchmark-to-real gap.** Müller et al. reported RawNet2 rising from 3.154% EER on ASVspoof 2019 LA to 37.819% on In-the-Wild [1]. This measures domain shift, not capacity.
-- **Codec robustness.** The ADD-C benchmark evaluates six codecs — AMR-WB, EVS, IVAS, Opus, Speex-WB and SILK [2]. All are wideband; narrowband G.711 is not among them.
-- **Real telephony conditions.** ASVspoof 2021 LA does include real a-law and μ-law transmission [10], but for English, with no capacity axis and no bandwidth-only control to separate low-pass filtering from companding.
-- **Efficient anti-spoofing.** AASIST-L reaches competitive accuracy at roughly 85K parameters [7], and later work sparsifies the AASIST backend further for deployment [11]. These report efficiency on clean conditions, not efficiency under a channel.
+**But those robust systems are large *because* they are self-supervised-pretrained on tens of thousands of hours.** Their robustness may come from the pretraining corpus rather than parameter count — and the effect is not monotone in size, since a 317M-parameter Wav2Vec2-AASIST does not automatically beat smaller systems on cross-dataset leaderboards [21].
 
-No published work reports EER degradation as a function of detector capacity under narrowband telephone coding, and none separates bandwidth from companding while doing so.
+Nobody has separated the two. The distinction decides whether edge deployment is possible:
 
-## Hypotheses
+- If robustness comes from **size**, the device is a hard ceiling.
+- If it comes from **pretraining**, a small *distilled* detector can inherit it, and the ceiling largely disappears.
 
-- **H1 — frontier steepening (primary):** G.711 coding increases EER more for small-capacity detectors than for large-capacity detectors.
-- **H2 — absolute degradation:** G.711 coding increases EER relative to paired clean audio for most detectors.
-- **H3 — bandwidth attribution:** part of the degradation is explained by 8 kHz bandwidth reduction alone, with any remainder attributable to A-law/μ-law companding.
-- **H4 — deployment viability:** at least one detector under 100K parameters retains usable G.711 performance while meeting a preregistered real-time factor and memory budget on the target device.
+Thai voice-cloning scams arrive by telephone, where G.711 low-pass filters to ~3.4 kHz [3] — removing the band where most vocoder artifacts live. This project asks the size-versus-pretraining question under exactly that channel.
 
-H1 is falsifiable and useful in both directions. If supported, small detectors cannot be deployed naively on phone audio. If rejected, cheap detectors are safe for this channel — a more surprising and equally actionable result.
+## What is already published
+
+Stated up front so nothing here is overclaimed. Full detail in [`docs/research-plan.md`](docs/research-plan.md) §2.
+
+- **Thai telephony evaluation exists.** The CSS dataset paper reports baselines "investigated in telephony scenarios" and supporting Thai anti-spoofing "in real-world telephony situations" [4], with the associated thesis extending to channel effects [12]. **This project's channel protocol is a replication and says so.**
+- **Real telephony codec conditions exist** — ASVspoof 2021 LA includes PSTN and PBX transmission with μ-law and a-law, for English [10].
+- **Threshold-transfer failure is established** — a 0.21%-EER detector at its source threshold rejects 78.7% of genuine in-the-wild speech while target EER reads 11.2% [19]. **This project does not claim that argument**; it reports transferred-threshold error as a secondary check, citing [19].
+
+## What is claimed here
+
+1. **Size versus pretraining, disentangled** — the primary contribution. No published work holds one constant while varying the other for channel robustness.
+2. **Bandwidth versus companding decomposition** — the C1 control separates 3.4 kHz low-pass filtering from A-law/μ-law companding. Not done in any language.
+3. **On-device measurement under channel conditions for Thai.**
+
+## Design: three cells, two clean contrasts
+
+|  | From-scratch | SSL-pretrained |
+| --- | --- | --- |
+| **Small** (<1M) | AASIST-L (~85K) | **Distilled WavLM student** (~1M) |
+| **Large** (>90M) | *(no standard system exists)* | WavLM + AASIST back-end (~94M) |
+
+- **Pretraining effect, size held ~constant:** AASIST-L vs distilled student
+- **Size effect, pretraining held constant:** distilled student vs WavLM + AASIST
+
+The diagonal is the confounded contrast the literature reports; here it serves as an internal consistency check. The empty lower-left cell is a stated limitation — no standard large from-scratch anti-spoofing system exists.
+
+The student is **distilled on clean data only**, so it never sees the channel. Any robustness it shows must be inherited from the representation, not learned from exposure.
 
 ## Experimental design
 
@@ -45,72 +66,45 @@ Every test utterance produces four paired versions:
 3. **C2 — G.711 μ-law:** 8 kHz encode/decode round trip
 4. **C3 — G.711 A-law:** 8 kHz encode/decode round trip
 
-C1 separates the effect of telephone bandwidth from G.711 companding. Every transformation is applied identically to genuine and spoof audio.
+C1 separates telephone bandwidth from G.711 companding. Every transformation is applied identically to genuine and spoof audio, through one pinned resampler.
 
-## Detector panel — the capacity axis
+## Hypotheses
 
-Capacity is the manipulated variable, so the panel spans roughly three orders of magnitude using published systems only:
+- **H1 — pretraining effect (primary):** at matched small size, the distilled detector degrades less under G.711 than the from-scratch one.
+- **H2 — size effect (primary):** at matched pretraining, the small student degrades more than the full-size SSL system.
+- **H3 — absolute degradation** under G.711 for most detectors.
+- **H4 — bandwidth attribution:** how much degradation is bandwidth versus companding.
+- **H5 — deployment viability:** the student meets the preregistered latency and memory budgets on the target device.
 
-| System | Approx. scale | Role |
-| --- | --- | --- |
-| LFCC-GMM | non-neural | classical floor |
-| AASIST-L | ~85K parameters | on-device candidate |
-| AASIST | ~297K parameters | small neural reference |
-| Frozen WavLM + linear head | ~94M frozen | large fixed representation |
-| WavLM + single LoRA adapter | ~94M + adapters | large adapted |
-
-Parameter counts are indicative. Final counts, multiply–accumulate operations, and on-device latency are **measured from the frozen configurations and reported**, not quoted from papers.
-
-**This project does not propose a new architecture.** Designing a novel nano network is explicitly out of scope: AASIST-L already occupies that size class, and the contribution here is the frontier, not the model.
+Every outcome is informative. Pretraining matters and size doesn't → **distillation is a viable route to edge deployment**, the most actionable result. Size matters and pretraining doesn't → edge deployment is genuinely constrained. Both → the factors contribute separately.
 
 ## Primary outcomes
 
-For each detector, with `EER_G711 = mean(EER_C2, EER_C3)`:
-
 ```text
-ΔEER_G711(m) = EER_G711(m) − EER_C0(m)
+ΔEER_G711(m)    = mean(EER_C2, EER_C3) − EER_C0
+DiD_pretraining = ΔEER_G711(AASIST-L)         − ΔEER_G711(student)
+DiD_size        = ΔEER_G711(student)          − ΔEER_G711(WavLM + AASIST)
 ```
 
-H1 is tested as a **difference-in-differences** between two detectors on the same paired recordings:
-
-```text
-DiD(small, large) = ΔEER_G711(small) − ΔEER_G711(large)
-```
-
-This contrast is well powered because the bootstrap resampling unit is the source recording, not the detector. Two contrasts are preregistered:
-
-- **Range contrast (primary):** AASIST-L versus WavLM+LoRA — the largest capacity span, but capacity and architecture family are entangled.
-- **Within-family contrast (secondary):** AASIST-L versus AASIST — architecture held constant, narrower capacity span.
-
-The full five-system frontier is reported descriptively as a Pareto curve, not as a regression on capacity: with five systems, a slope estimate over capacity has low inferential power and will be presented as an effect estimate with uncertainty.
-
-The study also reports:
-
-- 95% paired cluster-bootstrap intervals over source recordings
-- clean-to-channel threshold transfer without retuning on test data
-- the bandwidth-versus-companding decomposition from C1
-- measured parameters, MACs, real-time factor, peak memory and model file size on the target device
-
-## Deployment arm
-
-The smallest detector meeting the accuracy bar is exported and run on the declared target device with G.711-coded input, reporting real-time factor and peak resident memory under sustained load. This is a measurement, not a product: it establishes whether the frontier's small end is actually reachable on hardware a Thai deployment could afford.
+Each contrast uses a paired cluster bootstrap over source recordings, so the sample size is the number of recordings, not the number of models — which is what makes these well powered despite the small panel.
 
 ## What this project will not claim
 
-- It will not claim a novel architecture or a new state of the art on any benchmark.
-- It will not claim that capacity alone explains the frontier — architecture family is entangled with size, which is why the within-family contrast is reported alongside the range contrast.
+- It will not claim a novel architecture or a new state of the art.
+- It will not claim the threshold-transfer argument, which belongs to [19].
+- It will not claim to be the first Thai telephony evaluation, which is [4, 12].
 - It will not claim robustness to unseen voice generators.
-- It will not claim that simulated G.711 is identical to a real Thai telephone network.
+- It will not claim that simulated G.711 equals a real Thai telephone network.
 - It will not evaluate LINE, Discord, WhatsApp, replay, packet loss, or background noise.
 - It will not claim forensic certainty from a detector score.
-- It will not infer that the result generalizes to all Thai speakers or all future deepfakes.
+- It will not infer that results generalize to all Thai speakers or all future deepfakes.
 
 ## Repository contents
 
-- [`docs/research-plan.md`](docs/research-plan.md) — hypotheses, controls, protocol, statistics, and limitations
-- [`docs/feasibility.md`](docs/feasibility.md) — 12-week schedule, compute and hardware plan, and fallback paths
+- [`docs/research-plan.md`](docs/research-plan.md) — novelty position, design, hypotheses, protocol, statistics, limitations
+- [`docs/feasibility.md`](docs/feasibility.md) — 12-week schedule, compute and hardware plans, fallbacks
 - [`docs/compute-request.md`](docs/compute-request.md) — preliminary resource estimate and allocation request
-- [`docs/ethics.md`](docs/ethics.md) — consent, data governance, responsible release, and AI-tool disclosure
+- [`docs/ethics.md`](docs/ethics.md) — consent, data governance, responsible release, AI-tool disclosure
 - [`docs/references.md`](docs/references.md) — research and official sources
 - [`README.th.md`](README.th.md) — Thai-language overview
 

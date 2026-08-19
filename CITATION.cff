@@ -1,23 +1,28 @@
 cff-version: 1.2.0
 message: "If you use this research proposal, please cite it using the metadata below."
-title: "ScaleGap-TH: The Accuracy-Compute Frontier for Thai Audio Deepfake Detection under G.711 Telephone Coding"
+title: "ScaleGap-TH: Model Size versus Self-Supervised Pretraining in Thai Audio Deepfake Detection under G.711 Telephone Coding"
 type: software
 authors:
   - family-names: "punyo_o"
 repository-code: "https://github.com/punyopan/ysc"
 url: "https://github.com/punyopan/ysc"
 license: MIT
-version: 0.3.0
+version: 0.4.0
 date-released: 2026-08-19
 abstract: >-
-  A focused research proposal measuring whether G.711 telephone coding degrades
-  small-capacity Thai audio-deepfake detectors more than large-capacity ones,
-  with a bandwidth-only control, paired difference-in-differences estimates, and
-  an on-device deployment measurement.
+  A focused research proposal separating two factors the audio-deepfake
+  literature leaves entangled: whether robustness to G.711 telephone coding in
+  Thai comes from model size or from self-supervised pretraining. Uses a
+  size-by-pretraining detector panel including a student distilled on clean data
+  only, a bandwidth-only control separating low-pass filtering from companding,
+  paired difference-in-differences estimates, and an on-device deployment
+  measurement.
 keywords:
   - audio deepfake detection
   - Thai speech
   - accuracy-compute trade-off
+  - knowledge distillation
+  - self-supervised pretraining
   - efficient inference
   - on-device deployment
   - G.711

@@ -2,14 +2,14 @@
 
 ## Committed study
 
-ScaleGap-TH asks one question: whether G.711 telephone coding degrades small-capacity Thai audio-deepfake detectors more than large-capacity ones.
+ScaleGap-TH asks one question: whether Thai telephone-channel robustness comes from model size or from self-supervised pretraining, and whether a phone-sized detector can inherit it.
 
 Committed work:
 
 - one frozen Thai dataset split;
-- five detector systems spanning roughly three orders of magnitude in capacity;
+- five detector systems occupying three cells of a size × pretraining design, including one student distilled on clean data only;
 - four paired conditions (clean, 8 kHz control, μ-law, A-law);
-- EER degradation, difference-in-differences contrasts, threshold transfer, and paired bootstrap intervals;
+- two difference-in-differences contrasts, the bandwidth-versus-companding decomposition, a threshold-transfer check, and paired bootstrap intervals;
 - measured compute cost and on-device inference on one declared target device;
 - no new architecture, no state-of-the-art claim, and no real-platform transmission.
 
@@ -30,7 +30,7 @@ If the device is delayed or export fails, H4 is reported as not tested. H1–H3 
 
 The intended production resource is the ThaiSC LANTA supercomputer, subject to allocation approval. ThaiSC reports that LANTA contains 176 GPU nodes with four NVIDIA A100 GPUs per node and high-performance parallel storage.
 
-The capacity axis works in the schedule's favour: LFCC-GMM and channel generation are CPU-oriented, and AASIST-L and AASIST are small enough to train on a single modest GPU. Only the WavLM variants need substantial GPU time, and the frozen-WavLM system requires feature extraction plus a linear head rather than full fine-tuning.
+The design works in the schedule's favour: LFCC-GMM and channel generation are CPU-oriented, and AASIST-L, AASIST and the distilled student are all small enough to train on a single modest GPU. Only the large WavLM system needs substantial GPU time, and distillation runs against cached teacher outputs rather than re-running the teacher each step.
 
 Before requesting a full allocation, a pilot subset will measure:
 
@@ -50,19 +50,22 @@ If LANTA access is delayed:
 
 1. generate and verify C0–C3 manifests locally;
 2. complete LFCC-GMM first;
-3. complete AASIST-L and AASIST, which are tractable on a single GPU and together supply the within-family contrast;
-4. prioritize frozen WavLM over WavLM-LoRA, since feature extraction plus a linear head is far cheaper than adapter training;
-5. reduce neural repetitions only if declared before final scoring; and
-6. report any incomplete detector as missing rather than fabricate or extrapolate results.
+3. complete AASIST-L and AASIST, which are tractable on a single GPU;
+4. complete the large WavLM system next, since both DiD contrasts depend on it — it is the distillation teacher and the large arm of the size contrast;
+5. distil the student from cached teacher outputs;
+6. reduce neural repetitions only if declared before final scoring; and
+7. report any incomplete detector as missing rather than fabricate or extrapolate results.
 
-The primary range contrast needs the smallest and the largest system to complete. If no large system completes, the project reports the within-family contrast and the partial frontier, and states that the range contrast was not tested.
+Both contrasts depend on the distilled student, which in turn depends on the teacher. If the teacher completes but distillation fails to reach its preregistered clean-data accuracy bar, H1 and H2 are reported as untestable and the project reports absolute degradation plus the bandwidth-versus-companding decomposition, which does not depend on the student.
 
 ## Risks
 
 | Risk | Response | Claim limitation |
 | --- | --- | --- |
 | Thai dataset approval delayed | Apply in week 1; the frontier question is answerable on ASVspoof | Fallback result labelled non-Thai |
-| Prior thesis already covers Thai channel effects | Read [12] in week 1; if so, foreground the capacity axis as the contribution | Channel protocol described as replication |
+| CSS already covers Thai telephony | Confirmed in [4]; channel protocol is stated as a replication throughout | No first-Thai-telephony claim |
+| Thesis [12] covers more channel conditions than expected | Read in week 1; update novelty position in research-plan.md §2 | Contribution narrowed to size vs pretraining and the C1 decomposition |
+| Distillation fails to reach the clean accuracy bar | Preregistered bar; report as failed distillation | H1 and H2 untestable; C1 decomposition still stands |
 | Missing speaker/script metadata | Remove ambiguous samples or restrict claims | Reduced dataset coverage |
 | Too few samples after disjoint splitting | Report intervals and power limitation | No strong subgroup claims |
 | Corrupted codec output | Reject by preregistered integrity rule and document count | No silent replacement |
@@ -74,14 +77,13 @@ The primary range contrast needs the smallest and the largest system to complete
 
 | Weeks | Deliverable | Exit condition |
 | --- | --- | --- |
-| 1 | Adviser review, YSC/SRC/IRB decision, dataset requests, prior-work check on [12], target device ordered | Required approvals identified; novelty position confirmed in writing |
+| 1 | Adviser review, YSC/SRC/IRB decision, dataset requests, priority reads [4], [12], [19], target device ordered | Required approvals identified; novelty position in research-plan.md §2 updated against what those papers actually report |
 | 2 | Dataset inventory, license log, immutable split specification | Speaker/source leakage audit passes |
 | 3 | C0–C3 transformation implementation and resampler null check | Paired manifests and integrity tests pass; no class-separable resampling artifact |
 | 4 | LFCC-GMM baseline, compute pilot, device pilot measurement | End-to-end scoring reproduces from a clean environment; H4 budgets set from real numbers; estimates in `compute-request.md` replaced by measurements |
-| 5 | AASIST-L training; LANTA request and job configuration | Frozen configuration produces C0 scores; measured resource estimate recorded |
-| 6 | AASIST training | Frozen configuration produces C0 scores |
-| 7 | Frozen WavLM classifier | Frozen configuration produces C0 scores |
-| 8 | WavLM-LoRA | Frozen configuration produces C0 scores |
+| 5 | AASIST-L and AASIST training; LANTA request and job configuration | Frozen configurations produce C0 scores; measured resource estimate recorded |
+| 6–7 | WavLM + AASIST back-end, LoRA-adapted (the distillation teacher) | Frozen configuration produces C0 scores; teacher outputs cached |
+| 8 | Distil student on clean data only, to preregistered target size | Student meets clean-data accuracy bar, or failed distillation is recorded |
 | 9 | Freeze models, thresholds, transformations, budgets, and analysis plan | No channel test result has influenced tuning |
 | 10 | Final C0–C3 scoring; export smallest qualifying detector to device | Prediction files exist for every valid source-condition pair |
 | 11 | DiD, bootstrap, threshold transfer, frontier plots, on-device benchmark | Tables and plots reproduce directly from saved predictions |
@@ -95,6 +97,7 @@ A defensible minimum result consists of:
 - clean, bandwidth-control, μ-law, and A-law results;
 - paired source-level predictions;
 - `ΔEER` intervals and at least one `DiD` interval;
+- the bandwidth-versus-companding decomposition, which stands independently of the contrasts;
 - fixed-threshold error rates;
 - measured parameters and MACs for every completed detector; and
 - an explicit limitations section.
@@ -122,6 +125,8 @@ The demonstration must display uncertainty and must not present a single score a
 - [ ] G.711 implementation, resampler, and software versions pinned
 - [ ] Resampler null check passed and recorded
 - [ ] Detector revisions, configs, and random seeds saved
+- [ ] Distillation recipe and student target size frozen before channel scoring
+- [ ] Confirmed no channel-condition data entered distillation
 - [ ] Development thresholds frozen before channel scoring
 - [ ] Target device, runtime, and measurement protocol recorded
 - [ ] H4 budgets frozen before final scoring

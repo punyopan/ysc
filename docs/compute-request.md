@@ -38,13 +38,14 @@ Test sources are scored in all four conditions (C0–C3), giving ~40,000 scored 
 | C0–C3 channel generation | CPU, trivially parallel | — | ~1 |
 | LFCC-GMM baseline | CPU | — | ~5 |
 | AASIST-L + AASIST, 3 seeds each | GPU, 4 jobs packed per node | ~20 | ~60 |
-| Frozen WavLM feature extraction + linear head | GPU, features cached | ~2 | ~6 |
-| WavLM + LoRA, 3 seeds | GPU, the only substantial training job | ~15 | ~45 |
+| WavLM + AASIST back-end, LoRA-adapted, 3 seeds — the distillation teacher | GPU, the only substantial training job | ~15 | ~45 |
+| Teacher output caching over clean training data | GPU, inference only | ~2 | ~6 |
+| Distilled student, 3 seeds, trained against cached teacher outputs | GPU, small model | ~8 | ~24 |
 | Final C0–C3 scoring, all detectors | GPU, inference only | ~2 | ~6 |
-| **Subtotal** | | **~39** | **~125** |
-| Contingency — first-time HPC use, failed jobs, restarts | | ~2× | **~250–300** |
+| **Subtotal** | | **~47** | **~147** |
+| Contingency — first-time HPC use, failed jobs, restarts | | ~2× | **~300–350** |
 
-**Requested: approximately 300 SHr.**
+**Requested: approximately 350 SHr.**
 
 At the Thai government/education rate this is on the order of a single minimum-size LANTA project. The request is small by design.
 
@@ -57,16 +58,17 @@ Approximately 30 GB for the working set across four conditions, at 4 seconds and
 Three decisions dominate the budget. Each is preregistered so the number cannot drift silently.
 
 1. **Corpus size.** The Chula Spoofed Speech dataset contains roughly 1.33 million utterances. Using all of it would raise storage and compute by roughly 25× and would not improve the design, which needs speaker-disjoint paired splits rather than maximum volume. The subsample above is deliberate.
-2. **Seed count.** Three seeds triples the neural budget. If the host allocation is tight, the declared fallback is one seed for the WavLM variants, declared before final scoring rather than after.
+2. **Seed count.** Three seeds triples the neural budget. If the host allocation is tight, the declared fallback is one seed for the large WavLM system, declared before final scoring rather than after. The student keeps three seeds where possible, since distillation variance is a confound for the primary contrast.
 3. **Node packing.** A GPU node bills as four A100s whether or not all four are used. Seed replicates and independent detector runs are packed onto a single node; running one job per node would waste roughly 75% of the charge.
 
 ## Graceful degradation
 
 If the allocation is reduced, the project does not fail — it narrows, in this order:
 
-1. Channel generation, LFCC-GMM, AASIST-L and AASIST complete on a single consumer GPU and together supply the within-family contrast.
-2. Frozen WavLM is cheap because it needs feature extraction plus a linear head, not fine-tuning, and is prioritized over WavLM-LoRA.
-3. If no large system completes, the range contrast is reported as not tested and the project reports the within-family contrast and the partial frontier.
+1. Channel generation, LFCC-GMM, AASIST-L and AASIST complete on a single consumer GPU.
+2. The large WavLM system is prioritized next, because it is both the distillation teacher and the large arm of the size contrast — both DiD contrasts depend on it.
+3. The distilled student trains against cached teacher outputs, so it is cheap once the teacher exists.
+4. If distillation fails its preregistered clean-data accuracy bar, both contrasts are reported as untestable, and the bandwidth-versus-companding decomposition — which does not depend on the student — still stands as a result.
 
 Any detector that does not complete is reported as missing, never extrapolated.
 
@@ -86,11 +88,11 @@ To adapt before sending — replace the bracketed parts and have the adviser rev
 
 > Dear [name],
 >
-> I am a YSC entrant working with [adviser name] at [school] on ScaleGap-TH, a study of how the accuracy–compute trade-off for Thai audio-deepfake detection changes under G.711 telephone coding. The question is whether small, deployable detectors lose disproportionately more accuracy than large ones when audio passes through the narrowband telephone channel — which matters because Thai voice-cloning scams arrive by phone, and because edge deployment assumes small models are adequate.
+> I am a YSC entrant working with [adviser name] at [school] on ScaleGap-TH, a study of Thai audio-deepfake detection under G.711 telephone coding. The question is whether channel robustness comes from model size or from self-supervised pretraining — the literature entangles the two, because the robust systems are large precisely because they are SSL-pretrained. If robustness comes from pretraining rather than size, a small distilled detector can inherit it and run on affordable hardware; if it comes from size, edge deployment is genuinely constrained. This matters for Thailand because voice-cloning scams arrive by telephone, on a narrowband channel.
 >
 > I would like to ask whether I could run this as a team member under an existing project, rather than requesting a separate allocation.
 >
-> The request is small and bounded: approximately **300 SHr including contingency**, and roughly **30 GB** of storage. Most of the work is CPU-only or runs on a single GPU; only one detector configuration requires substantial GPU training. A full breakdown is at [repository link].
+> The request is small and bounded: approximately **350 SHr including contingency**, and roughly **30 GB** of storage. Most of the work is CPU-only or runs on a single GPU; only one detector configuration requires substantial GPU training. A full breakdown is at [repository link].
 >
 > These are preliminary estimates. I plan a pilot in week 4 to measure actual peak memory, throughput, and epoch time, and I will report measured figures back before scaling up. If the allocation is tighter than this, the study degrades gracefully — the smaller detectors complete on modest hardware and still answer a reduced version of the question.
 >

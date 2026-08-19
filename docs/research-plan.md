@@ -2,54 +2,66 @@
 
 ## 1. Problem statement
 
-Audio-deepfake detectors are increasingly deployed at the edge — on phones, gateways, and single-board computers — where compute is scarce. The standard response is to use a smaller model. That advice is validated almost entirely on clean, wideband benchmark audio.
+Audio-deepfake detectors are increasingly deployed at the edge — on phones, gateways, and single-board computers — where compute is scarce. The standard response is to use a smaller model, and on clean benchmark data that looks free: AASIST reports 0.83% EER on ASVspoof 2019 LA at 297K parameters, while AASIST-L reports 0.99% at 85K [7]. A 3.5× reduction costs 0.16 percentage points.
 
-Thai voice-cloning scams do not arrive as clean wideband audio. They arrive over a telephone path, where G.711 low-pass filters the signal to roughly 3.4 kHz [3]. Most vocoder and TTS artifacts concentrate above that cutoff. This creates a specific, testable concern: a high-capacity detector may retain redundant discriminative cues in the surviving band, while a small detector may have allocated its limited capacity to the band the channel removes. If so, the accuracy cost of shrinking a detector is larger on telephone audio than on clean audio, and edge deployment is harder than clean-condition efficiency numbers suggest.
+Away from the benchmark the picture inverts. Detectors that score below 1% in-domain reach 30–60% EER on in-the-wild corpora, and RawNet2 exceeds 40% EER on most out-of-distribution sets, while large self-supervised systems remain in the 7–9% range [20, 21]. On that evidence, size appears to buy robustness that the benchmark cannot see.
 
-### What prior work does and does not establish
+**But size is confounded with pretraining.** The robust systems are large *because* they are built on self-supervised encoders pretrained on tens of thousands of hours of unlabeled speech. Their robustness may come from the pretraining corpus rather than from parameter count, and the effect is not monotone in size — a 317M-parameter Wav2Vec2-AASIST does not automatically outperform smaller systems on cross-dataset leaderboards [21].
 
-Müller et al. reported RawNet2 rising from 3.154% EER on ASVspoof 2019 LA to 37.819% on an In-the-Wild dataset, with roughly 200–1,000% EER deterioration across configurations [1]. That measures domain shift, not capacity.
+No published work separates these two factors. That matters directly for deployment: if robustness comes from parameter count, edge deployment is bounded by the device. If it comes from pretraining, a small *distilled* detector could inherit it, and the edge constraint largely dissolves.
 
-Shi et al. benchmarked three detector families across six communication codecs and five packet-loss rates, reporting an average 5.30% EER degradation from clean audio to codec-compressed audio at zero packet loss, and proposed a data-augmentation remedy [2]. Their codec set — AMR-WB, EVS, IVAS, Opus, Speex-WB and SILK — is entirely wideband. Narrowband G.711 is not evaluated.
-
-ASVspoof 2021 LA does include real telephony transmission: condition C3 traverses a PSTN path with a μ-law codec at 8 kHz, and further conditions traverse a PBX using a-law and G.722 among others [10]. This is stronger evidence than simulation, but it is English, it reports no capacity axis, and it provides no bandwidth-only control that would separate low-pass filtering from companding.
-
-On the efficiency side, AASIST-L attains competitive accuracy at roughly 85K parameters [7], and subsequent work sparsifies the AASIST backend specifically for deployment [11]. Both characterise the accuracy–compute trade-off under clean conditions.
-
-The interaction is unmeasured. No published work reports EER degradation as a function of detector capacity under narrowband telephone coding, and none decomposes that degradation into bandwidth and companding components.
+Thai voice-cloning scams arrive over the telephone, where G.711 low-pass filters the signal to roughly 3.4 kHz [3] — removing the band where most vocoder and TTS artifacts concentrate. This project asks the size-versus-pretraining question under exactly that channel.
 
 ### Research question
 
-> Does G.711 telephone coding degrade small-capacity Thai audio-deepfake detectors more than large-capacity ones?
+> Does Thai telephone-channel robustness in audio-deepfake detection come from model size or from self-supervised pretraining, and can a phone-sized detector inherit it?
+
+## 2. Honest novelty position
+
+This section records what is already published, so that no claim in this project overstates its contribution. It must be revised, not deleted, if week-1 reading changes the picture.
+
+**Already published, and not claimed here:**
+
+- **Thai telephony evaluation.** The CSS dataset paper states that its baselines "were investigated in telephony scenarios" and that the dataset supports Thai anti-spoofing "in real-world telephony situations" [4]. The associated thesis extends to channel effects [12]. **The channel protocol in this project is therefore a replication, not a new finding**, and is described as such throughout.
+- **Real telephony codec conditions.** ASVspoof 2021 LA includes real PSTN and PBX transmission using μ-law and a-law [10], for English.
+- **Codec robustness benchmarking.** ADD-C covers six wideband codecs — AMR-WB, EVS, IVAS, Opus, Speex-WB and SILK — and excludes narrowband G.711 [2].
+- **Threshold-transfer failure.** That EER at an oracle threshold hides deployment failure is established: a 0.21%-EER detector operated at its source threshold rejects 78.7% of genuine in-the-wild speech while its target EER still reads 11.2% [19]. **This project does not claim the threshold-transfer argument.** It reports transferred-threshold error rates as a secondary deployment check, citing [19], and adopts that paper's recommendation to report error at a transferred threshold alongside EER.
+- **Cross-dataset and cross-language generalization gaps** [20, 21, 22].
+- **Efficient anti-spoofing architectures.** AASIST-L at ~85K parameters [7], and a sparsified AASIST backend for deployment [11].
+
+**What remains genuinely open, and is claimed here:**
+
+1. **Size versus pretraining, disentangled.** No published work holds pretraining constant while varying size, or holds size constant while varying pretraining, for channel robustness. This is the primary contribution.
+2. **Bandwidth versus companding decomposition.** No published work separates the effect of 3.4 kHz low-pass filtering from A-law/μ-law companding, in any language. The C1 control is original.
+3. **On-device measurement under channel conditions for Thai.** Not previously reported.
+
+## 3. Design: three cells, two clean contrasts
+
+Capacity and pretraining are varied independently across the detector panel:
+
+|  | From-scratch | SSL-pretrained |
+| --- | --- | --- |
+| **Small** (<1M params) | AASIST-L (~85K) | **Distilled WavLM student** (~1M) |
+| **Large** (>90M params) | *(no standard system exists)* | WavLM + AASIST back-end (~94M) |
+
+The lower-left cell is empty because no standard large from-scratch anti-spoofing system exists; this is a stated limitation, not an oversight. The three occupied cells still support two clean, independently interpretable contrasts:
+
+- **Pretraining effect, size held approximately constant:** AASIST-L versus the distilled student. Both are small and deployable; they differ in whether the representation was self-supervised-pretrained.
+- **Size effect, pretraining held constant:** distilled student versus WavLM + AASIST. Both inherit the same pretrained representation; they differ by roughly two orders of magnitude in size.
+
+The diagonal — AASIST-L versus WavLM + AASIST — is the confounded contrast that the existing literature reports. Here it is interpretable as approximately the sum of the two clean effects, which provides an internal consistency check.
 
 ### Hypotheses
 
-- **H1 — frontier steepening (primary):** the increase in EER caused by G.711 coding is larger for small-capacity detectors than for large-capacity detectors.
-- **H2 — absolute degradation:** G.711 coding increases EER relative to paired clean audio for most detector families.
-- **H3 — bandwidth attribution:** some degradation is explained by the 8 kHz bandwidth reduction alone, while additional degradation may be attributable to A-law/μ-law companding.
-- **H4 — deployment viability:** at least one detector under 100K parameters retains usable G.711 performance while meeting the preregistered real-time factor and peak-memory budget on the declared target device.
+- **H1 — pretraining effect (primary):** at matched small size, the SSL-distilled detector degrades less under G.711 than the from-scratch detector.
+- **H2 — size effect (primary):** at matched pretraining, the small distilled student degrades more under G.711 than the full-size SSL system.
+- **H3 — absolute degradation:** G.711 coding increases EER relative to paired clean audio for most detectors.
+- **H4 — bandwidth attribution:** some degradation is explained by 8 kHz bandwidth reduction alone, with any remainder attributable to A-law/μ-law companding.
+- **H5 — deployment viability:** the distilled student meets the preregistered real-time factor and peak-memory budget on the declared target device while retaining usable G.711 performance.
 
-The study is descriptive and falsifiable in both directions. H1 is unsupported if the difference-in-differences interval includes or falls below zero — which would be a useful result, indicating that cheap detectors are safe for this channel. H2 is unsupported if paired intervals show no positive degradation. H3 is unsupported if G.711 conditions do not differ meaningfully from the 8 kHz linear-PCM control. H4 is unsupported if no small detector meets both budgets.
+The interesting outcomes are asymmetric and all informative. H1 supported and H2 unsupported means pretraining carries the robustness and small distilled detectors are viable at the edge — the most actionable result. H1 unsupported and H2 supported means capacity is irreducible and edge deployment is genuinely constrained. Both supported means the two factors contribute separately, and the frontier is steeper than either alone suggests.
 
-## 2. Contribution and scope
-
-The contribution is a controlled, paired measurement of how the accuracy–compute frontier for Thai audio-deepfake detection changes under a narrowband telephone channel, plus an on-device measurement establishing whether the small end of that frontier is reachable in practice. It combines:
-
-1. identical source recordings across all channel conditions;
-2. symmetric transformation of genuine and spoof classes;
-3. an 8 kHz bandwidth-only control;
-4. a detector panel spanning roughly three orders of magnitude in capacity;
-5. fixed development thresholds transferred to channel conditions;
-6. paired difference-in-differences estimates with cluster-bootstrap uncertainty; and
-7. measured compute cost on declared target hardware.
-
-### Explicit exclusions
-
-The committed study does not propose a new architecture, does not pursue state of the art on any benchmark, and does not investigate unseen generators, messaging applications, packet loss, replay, background noise, real telephone calls as a main condition, partial deepfakes, abstention, or Thai-tone auxiliaries. These may be discussed as future work but cannot enter the main experiment after preregistration.
-
-Designing a novel nano architecture is deliberately out of scope. AASIST-L already occupies the sub-100K size class [7] and a sparsified successor exists [11]; attempting to outperform them is a poor use of the schedule and would replace a falsifiable question with an engineering race.
-
-## 3. Experimental conditions
+## 4. Experimental conditions
 
 Every test source produces four deterministic, paired conditions:
 
@@ -60,26 +72,26 @@ Every test source produces four deterministic, paired conditions:
 | C2 | G.711 μ-law encode/decode at 8 kHz, then resampled | Measure μ-law path |
 | C3 | G.711 A-law encode/decode at 8 kHz, then resampled | Measure A-law path |
 
-G.711 is formally defined by ITU-T Recommendation G.711 [3]. The exact encoder, decoder, resampler, software version, and command line will be frozen before final evaluation.
+G.711 is defined by ITU-T Recommendation G.711 [3]. The exact encoder, decoder, resampler, software version, and command line are frozen before final evaluation.
 
-**Resampler control.** Because C1–C3 are resampled back up to the model input rate, the resampling filter is itself a potential artifact and a potential confound for the bandwidth effect. One resampler, one filter design, and one set of parameters will be used for every condition and both classes, pinned by version and recorded in the transformation manifest. A null check will confirm that a C0→8 kHz→16 kHz round trip applied to already-narrowband audio does not itself create a class-separable cue.
+**Resampler control.** Because C1–C3 are resampled back up to the model input rate, the resampling filter is itself a potential artifact and a confound for the bandwidth effect. One resampler, one filter design, and one parameter set is used for every condition and both classes, pinned by version and recorded in the transformation manifest. A null check confirms that a C0→8 kHz→16 kHz round trip applied to already-narrowband audio does not itself create a class-separable cue.
 
-Peak normalization, denoising, silence trimming, and loudness normalization will not be applied differently across conditions.
+Peak normalization, denoising, silence trimming, and loudness normalization are not applied differently across conditions.
 
 ### Transformation integrity checks
 
-- Each transformed file must map to exactly one source ID.
-- Duration drift must remain within a preregistered tolerance.
-- C1–C3 must contain the same source content and labels as C0.
-- Hashes of transformation configuration and output manifests must be saved.
-- Genuine and spoof counts must be identical across paired conditions.
-- A random sample will be decoded and inspected for corruption before scoring.
+- Each transformed file maps to exactly one source ID.
+- Duration drift stays within a preregistered tolerance.
+- C1–C3 contain the same source content and labels as C0.
+- Hashes of transformation configuration and output manifests are saved.
+- Genuine and spoof counts are identical across paired conditions.
+- A random sample is decoded and inspected for corruption before scoring.
 
-## 4. Dataset design
+## 5. Dataset design
 
-Potential Thai sources include Chula Spoofed Speech (CSS) and SEA-Spoof, subject to current access approval and licenses [4–6]. The final dataset choice must be frozen before model comparison.
+Potential Thai sources include Chula Spoofed Speech (CSS) and SEA-Spoof, subject to access approval and licenses [4–6].
 
-**Prior-work check.** The thesis underlying the CSS release is titled to include channel effects [12]. It must be read in full before the protocol is frozen. If it already reports narrowband telephone conditions on CSS, this project's channel protocol is a replication and the capacity axis becomes the sole contribution; the proposal will say so explicitly rather than overstate novelty.
+**Week-1 prior-work requirement.** The CSS paper [4] and thesis [12] must be read in full before the protocol is frozen, and the novelty position in section 2 updated against what they actually report — including which codecs, which conditions, and which detectors. If they already report the exact G.711 conditions used here, this project cites them as the baseline and reports its own channel results as a replication supporting the capacity and pretraining contrasts.
 
 ### Split controls
 
@@ -90,159 +102,142 @@ Potential Thai sources include Chula Spoofed Speech (CSS) and SEA-Spoof, subject
 - No transformed version of a test source in training or development
 - One immutable test manifest used for every detector and condition
 
-Generator identity is stratified where possible but is not a generalization target.
-
 ### Dataset fallback
 
-If restricted Thai data is unavailable, the capacity-versus-channel question remains answerable on lawfully accessible ASVspoof data. This is a genuine fallback rather than a dead end: the frontier hypothesis is not language-specific, so a completed non-Thai study still answers H1–H4. Such a result must be labelled non-Thai, and the report will state plainly that the Thai application claim was not tested.
+If restricted Thai data is unavailable, the size-versus-pretraining question remains answerable on lawfully accessible ASVspoof data, since it is not language-specific. Such a result is labelled non-Thai, and the report states plainly that the Thai application claim was not tested.
 
-## 5. Detector panel
+## 6. Detector panel
 
-Capacity is the manipulated variable. The panel uses published systems only, spanning roughly three orders of magnitude:
-
-| System | Approx. scale | Role | Ref |
+| System | Approx. scale | Cell | Ref |
 | --- | --- | --- | --- |
 | LFCC-GMM | non-neural | classical floor | — |
-| AASIST-L | ~85K parameters | on-device candidate | [7] |
-| AASIST | ~297K parameters | small neural reference | [7] |
-| Frozen WavLM + linear head | ~94M frozen | large fixed representation | [8] |
-| WavLM + single LoRA adapter | ~94M + adapters | large adapted | [8, 9] |
+| AASIST-L | ~85K parameters | small, from-scratch | [7] |
+| AASIST | ~297K parameters | small, from-scratch (reference) | [7] |
+| Distilled WavLM student | ~1M parameters (target) | small, pretrained | [8], distilled from row 5 |
+| WavLM + AASIST back-end, LoRA-adapted | ~94M parameters | large, pretrained | [7, 8, 9] |
 
-Parameter counts above are indicative. Actual parameter counts, MACs per second of audio, and measured latency are reported from the frozen configurations.
+The large system uses an AASIST back-end rather than a linear head because SSL front-end plus AASIST back-end is the architecture that current published and deployed systems actually use [21, 23]. On cached frozen features the back-end is inexpensive.
 
-Every detector receives identical train/development/test source partitions. Hyperparameters are selected using only the clean training/development data and then frozen. Channel-condition test scores cannot be used to tune architectures, training schedules, thresholds, or preprocessing.
+Parameter counts are indicative. Actual counts, MACs per second of audio, and measured latency are reported from the frozen configurations.
 
-Three independent training seeds will be used for trainable neural systems if compute permits. Seed-level results quantify optimization variability and are reported as such.
+### Distillation protocol
 
-### Confounding between capacity and architecture
+The student is distilled from the frozen large system on **clean training data only**. No channel-condition data enters distillation, so the student cannot acquire channel robustness by having seen the channel — any robustness it shows must be inherited from the representation. Distillation loss, student architecture, temperature, and stopping criterion are frozen before channel scoring.
 
-Capacity cannot be varied in isolation across published systems: AASIST-L and WavLM differ in family as well as size. The design addresses this rather than ignoring it, by preregistering two contrasts:
+The student's target size is declared in advance so that it is not tuned to produce a favourable contrast. If the student fails to reach an accuracy bar on clean data, it is reported as a failed distillation and H1 is reported as untestable rather than being rescued by re-tuning.
 
-- **Range contrast (primary):** AASIST-L versus WavLM+LoRA. Largest capacity span, confounded with family.
-- **Within-family contrast (secondary):** AASIST-L versus AASIST. Family held constant, narrower span.
+### Training controls
 
-Agreement between the two strengthens a capacity interpretation. Disagreement will be reported as evidence that family, not size, drives the effect.
+Every detector receives identical train/development/test source partitions. Hyperparameters are selected using only clean training/development data and then frozen. Channel-condition test scores cannot be used to tune architectures, training schedules, thresholds, or preprocessing. Three independent training seeds are used for trainable neural systems if compute permits.
 
-## 6. Evaluation protocol
+## 7. Evaluation protocol
 
 ### Primary condition
 
 For detector `m`:
 
 ```text
-EER_G711(m) = mean(EER_C2(m), EER_C3(m))
+EER_G711(m)  = mean(EER_C2(m), EER_C3(m))
 ΔEER_G711(m) = EER_G711(m) − EER_C0(m)
 ```
 
-The macro-average prevents a decision based on whichever G.711 law happens to be easier.
-
-### Primary analysis — difference in differences
+### Primary analysis — two difference-in-differences contrasts
 
 ```text
-DiD(small, large) = ΔEER_G711(small) − ΔEER_G711(large)
+DiD_pretraining = ΔEER_G711(AASIST-L)        − ΔEER_G711(distilled student)
+DiD_size        = ΔEER_G711(distilled student) − ΔEER_G711(WavLM + AASIST)
 ```
 
-Both detectors are evaluated on the same paired recordings, so the contrast is estimated with a paired cluster bootstrap whose resampling unit is the original source recording. All channel versions of one source, and all detectors' scores for that source, move together in every replicate. H1 is supported if the 95% interval for `DiD` excludes zero from above.
+Both detectors in each contrast are evaluated on the same paired recordings, so each contrast is estimated with a paired cluster bootstrap whose resampling unit is the original source recording. All channel versions of one source, and all detectors' scores for that source, move together in every replicate. This is what makes the contrasts well powered despite the small number of systems — the sample size is the number of recordings, not the number of models.
 
-Where repeated speech from the same speaker creates dependence, a speaker-cluster sensitivity analysis will also be reported.
+H1 is supported if `DiD_pretraining` excludes zero from above. H2 is supported if `DiD_size` excludes zero from above.
 
-### Frontier reporting
+A consistency check reports whether `DiD_pretraining + DiD_size` is compatible with the confounded diagonal contrast within bootstrap uncertainty. Material disagreement indicates interaction between the two factors and is reported rather than suppressed.
 
-`ΔEER_G711` is reported for all five systems against measured capacity, as a descriptive Pareto curve with per-system intervals. With five systems, a fitted slope over capacity has low inferential power; it will be reported as an effect estimate with uncertainty, never reduced to a p-value.
+Where repeated speech from the same speaker creates dependence, a speaker-cluster sensitivity analysis is also reported.
 
-### Bandwidth attribution
+### Bandwidth attribution — the original contribution
 
 ```text
-Bandwidth effect          = EER_C1 − EER_C0
-Additional μ-law effect   = EER_C2 − EER_C1
-Additional A-law effect   = EER_C3 − EER_C1
+Bandwidth effect        = EER_C1 − EER_C0
+Additional μ-law effect = EER_C2 − EER_C1
+Additional A-law effect = EER_C3 − EER_C1
 ```
 
-This avoids attributing all narrowband degradation to companding. The decomposition is reported per system, so that H1 can be examined separately for the bandwidth and companding components.
+Reported per system, so that H1 and H2 can be examined separately for the bandwidth and companding components. Since no published work separates these, this decomposition is reported as a primary result in its own right regardless of how the DiD contrasts resolve.
 
-### Threshold-transfer analysis
+### Threshold-transfer check — secondary, not claimed
 
-EER permits a new threshold for each condition, which can hide deployment failure. Each detector's operating threshold will also be selected once on the clean development set and transferred unchanged to C0–C3. Report:
-
-- false-positive rate for genuine audio;
-- false-negative rate for spoof audio;
-- balanced accuracy; and
-- change relative to C0.
+Following the recommendation of [19], each detector's operating threshold is selected once on the clean development set and transferred unchanged to C0–C3, reporting false-positive rate, false-negative rate, balanced accuracy, and change relative to C0. This is a deployment sanity check on the present systems, not a novel contribution: the argument and its strongest evidence belong to [19] and are cited as such.
 
 ### Compute measurement
 
-For every detector, measured and reported:
-
-- parameter count and model file size
-- multiply–accumulate operations per second of audio
-- real-time factor on the declared target device
-- peak resident memory under sustained inference
-- the same figures on the development workstation, for comparability
-
-Measurement conditions — device, thermal state, batch size, input length, number of repetitions, and how the median and spread are computed — are preregistered.
+Measured and reported for every detector: parameter count, model file size, MACs per second of audio, real-time factor on the declared target device, and peak resident memory under sustained inference, plus the same figures on the development workstation. Measurement conditions — device, thermal state, batch size, input length, repetitions, and how median and spread are computed — are preregistered.
 
 ### Secondary metrics
 
-- AUROC and AUPRC
-- EER separately for C2 and C3
-- Per-generator and per-speaker breakdowns where sample size and privacy permit
+AUROC, AUPRC, EER separately for C2 and C3, and per-generator and per-speaker breakdowns where sample size and privacy permit.
 
-## 7. Leakage and confounding controls
+## 8. Leakage and confounding controls
 
 - Apply C1–C3 symmetrically to genuine and spoof samples.
 - Use identical containers, input rates, duration handling, and file naming across classes.
 - Use one pinned resampler configuration everywhere.
+- Distil on clean data only, so the student cannot see the channel.
 - Do not encode only one class or generator family.
 - Do not allow channel labels to correlate with class labels.
 - Freeze all thresholds before opening transformed test results.
 - Store source IDs separately from human-readable identities.
 - Audit duplicate or near-duplicate audio before splitting.
-- Report exclusions and the complete sample count in every condition.
+- Report exclusions and complete sample counts in every condition.
 
-## 8. Decision rules
+## 9. Decision rules
 
-The project succeeds scientifically whether the hypotheses are supported or rejected, provided the protocol is completed without leakage and uncertainty is reported.
+The project succeeds scientifically whether the hypotheses are supported or rejected, provided the protocol completes without leakage and uncertainty is reported.
 
 Before final scoring, preregister:
 
 1. the immutable test manifest;
-2. the five detector configurations;
-3. the seed policy;
-4. C0–C3 transformation commands and the pinned resampler;
-5. the primary G.711 macro-average and the two DiD contrasts;
-6. bootstrap units and replicate count;
-7. the target device, the real-time-factor budget, and the peak-memory budget for H4; and
-8. handling of failed or corrupted samples.
+2. the five detector configurations, including the student's target size;
+3. the distillation protocol;
+4. the seed policy;
+5. C0–C3 transformation commands and the pinned resampler;
+6. the primary G.711 macro-average and both DiD contrasts;
+7. bootstrap units and replicate count;
+8. the target device and the H5 budgets; and
+9. handling of failed or corrupted samples.
 
 Interpretation:
 
-- A positive `DiD` whose interval excludes zero supports frontier steepening.
-- A `DiD` interval containing zero does not support steepening and will be reported as such, not as a null to be explained away.
-- A negative `DiD` supports the opposite conclusion: small detectors are comparatively robust to this channel.
-- Agreement between the range and within-family contrasts supports a capacity interpretation; disagreement supports an architecture-family interpretation.
-- Similar C1, C2, and C3 results indicate bandwidth — not G.711 companding — is the dominant measured factor.
+- `DiD_pretraining > 0` with interval excluding zero supports pretraining as a source of channel robustness.
+- `DiD_size > 0` with interval excluding zero supports capacity as a separate source.
+- Both positive: the factors contribute separately and additively.
+- Pretraining positive, size not: **distillation is a viable route to edge deployment** — the most actionable outcome.
+- Size positive, pretraining not: capacity is irreducible and edge deployment is genuinely constrained.
+- Neither: this channel does not discriminate between the systems, reported as such.
+- Similar C1, C2 and C3 results indicate bandwidth, not companding, is the dominant factor.
 - Wide intervals produce an inconclusive result, not evidence of no effect.
 
-## 9. Limitations
+## 10. Limitations
 
-- Simulated G.711 is not a complete telephone network.
-- Capacity is entangled with architecture family; the within-family contrast narrows but does not eliminate this.
-- Five systems provide only a preliminary frontier shape.
+- Simulated G.711 is not a complete telephone network, and the channel protocol replicates published Thai telephony work [4, 12].
+- The design has three cells, not four; no large from-scratch system anchors the missing cell.
+- The pretraining contrast compares a distilled student against a from-scratch model of similar but not identical size; residual size difference is reported.
+- Distillation quality is a confound: a weak student could fail for reasons unrelated to pretraining, which is why a clean-data accuracy bar is preregistered.
 - Dataset access and Thai speaker diversity may constrain external validity.
 - EER does not represent real scam prevalence or asymmetric deployment costs.
 - On-device timings are specific to one device, one runtime, and one thermal environment.
-- Current generators may not represent future synthesis systems.
 - Results cannot establish that any detector is safe for forensic or financial decisions.
 
-## 10. Deliverables
+## 11. Deliverables
 
 - Versioned source and transformed manifests
 - Reproducible C0–C3 transformation script and environment
-- Frozen detector configurations and model revisions
+- Frozen detector configurations, distillation recipe, and model revisions
 - Source-level prediction files
 - EER, threshold-transfer, DiD and bootstrap analysis scripts
-- Frontier plots of `ΔEER_G711` against measured capacity
+- Bandwidth-versus-companding decomposition tables
 - On-device benchmark script and measured latency/memory tables
 - Leakage audit, model card, ethics statement, and limitations
 
-See [`feasibility.md`](feasibility.md) for the schedule, compute plan, and hardware plan.
+See [`feasibility.md`](feasibility.md) for schedule, compute and hardware plans, and [`compute-request.md`](compute-request.md) for the resource estimate.

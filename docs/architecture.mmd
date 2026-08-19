@@ -9,26 +9,34 @@ flowchart TB
     C2 --> D
     C3 --> D
 
-    subgraph D [Frozen detector panel — capacity axis]
-        direction LR
-        D1[LFCC-GMM<br/>non-neural] --- D2[AASIST-L<br/>~85K] --- D3[AASIST<br/>~297K] --- D4[frozen WavLM<br/>~94M] --- D5[WavLM + LoRA<br/>~94M + adapters]
+    subgraph D [Frozen detector panel — size x pretraining]
+        direction TB
+        D1[LFCC-GMM<br/>classical floor]
+        D2[AASIST-L ~85K<br/>small, from-scratch]
+        D3[AASIST ~297K<br/>small, from-scratch]
+        D4[Distilled student ~1M<br/>small, PRETRAINED]
+        D5[WavLM + AASIST ~94M<br/>large, pretrained]
+        D5 -. distil on clean data only .-> D4
     end
 
     D --> E[Paired source-level scores<br/>+ measured params, MACs, latency]
 
+    E --> I1[DiD pretraining<br/>AASIST-L vs student<br/>size held constant]
+    E --> I2[DiD size<br/>student vs WavLM+AASIST<br/>pretraining held constant]
+    E --> H[Bandwidth vs companding<br/>decomposition from C1]
     E --> F[ΔEER per detector with paired<br/>cluster-bootstrap intervals]
-    E --> G[Clean-development threshold transfer<br/>FPR, FNR and balanced accuracy<br/>with no channel retuning]
-    E --> H[Bandwidth versus companding<br/>decomposition from C1]
-    E --> I[DiD: ΔEER small − ΔEER large<br/>range and within-family contrasts]
-    E --> J[Frontier plot and<br/>on-device deployment check]
+    E --> G[Threshold-transfer check<br/>secondary, follows ref 19]
+    E --> J[On-device deployment<br/>real-time factor and memory]
 
     classDef source fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;
     classDef condition fill:#fef3c7,stroke:#b45309,color:#78350f;
     classDef detector fill:#ede9fe,stroke:#6d28d9,color:#3b0764;
+    classDef student fill:#fce7f3,stroke:#be185d,color:#831843;
     classDef analysis fill:#dcfce7,stroke:#15803d,color:#14532d;
     classDef primary fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d;
     class A source;
     class C0,C1,C2,C3 condition;
-    class D1,D2,D3,D4,D5 detector;
-    class E,F,G,H,J analysis;
-    class I primary;
+    class D1,D2,D3,D5 detector;
+    class D4 student;
+    class E,F,G,J analysis;
+    class I1,I2,H primary;
