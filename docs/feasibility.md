@@ -42,6 +42,8 @@ Before requesting a full allocation, a pilot subset will measure:
 
 The LANTA request will be based on measured pilot usage, five detector configurations, the declared seed policy, and one final scoring pass. No unsupported GPU-hour estimate will be placed in the proposal.
 
+A preliminary, clearly-labelled estimate and a draft allocation request are kept separately in [`compute-request.md`](compute-request.md). Those figures are for asking a host project a bounded question, not for the proposal; the pilot replaces them.
+
 ### Compute fallback
 
 If LANTA access is delayed:
@@ -75,7 +77,7 @@ The primary range contrast needs the smallest and the largest system to complete
 | 1 | Adviser review, YSC/SRC/IRB decision, dataset requests, prior-work check on [12], target device ordered | Required approvals identified; novelty position confirmed in writing |
 | 2 | Dataset inventory, license log, immutable split specification | Speaker/source leakage audit passes |
 | 3 | C0–C3 transformation implementation and resampler null check | Paired manifests and integrity tests pass; no class-separable resampling artifact |
-| 4 | LFCC-GMM baseline, compute pilot, device pilot measurement | End-to-end scoring reproduces from a clean environment; H4 budgets set from real numbers |
+| 4 | LFCC-GMM baseline, compute pilot, device pilot measurement | End-to-end scoring reproduces from a clean environment; H4 budgets set from real numbers; estimates in `compute-request.md` replaced by measurements |
 | 5 | AASIST-L training; LANTA request and job configuration | Frozen configuration produces C0 scores; measured resource estimate recorded |
 | 6 | AASIST training | Frozen configuration produces C0 scores |
 | 7 | Frozen WavLM classifier | Frozen configuration produces C0 scores |
@@ -113,6 +115,7 @@ The demonstration must display uncertainty and must not present a single score a
 ## Reproducibility checklist
 
 - [ ] Dataset permissions, versions, and exclusions recorded
+- [ ] Storage location for restricted audio approved by the dataset licence and ethics decision
 - [ ] Required ethics/SRC/IRB decision recorded
 - [ ] Prior-work check on [12] documented
 - [ ] Split and transformation manifest hashes saved

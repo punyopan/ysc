@@ -109,6 +109,7 @@ DiD(small, large) = ΔEER_G711(small) − ΔEER_G711(large)
 
 - [`docs/research-plan.md`](docs/research-plan.md) — สมมติฐาน ตัวแปรควบคุม ระเบียบวิธี สถิติ และข้อจำกัด
 - [`docs/feasibility.md`](docs/feasibility.md) — แผน 12 สัปดาห์ แผนใช้ LANTA แผนฮาร์ดแวร์ และแผนสำรอง
+- [`docs/compute-request.md`](docs/compute-request.md) — ประมาณการทรัพยากรคำนวณเบื้องต้นและการขอใช้ allocation
 - [`docs/ethics.md`](docs/ethics.md) — ความยินยอม การจัดการข้อมูล การสาธิตอย่างรับผิดชอบ และการเปิดเผยการใช้ AI
 - [`docs/references.md`](docs/references.md) — เอกสารวิจัยและแหล่งข้อมูลทางการ
 

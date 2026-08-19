@@ -109,6 +109,7 @@ The smallest detector meeting the accuracy bar is exported and run on the declar
 
 - [`docs/research-plan.md`](docs/research-plan.md) — hypotheses, controls, protocol, statistics, and limitations
 - [`docs/feasibility.md`](docs/feasibility.md) — 12-week schedule, compute and hardware plan, and fallback paths
+- [`docs/compute-request.md`](docs/compute-request.md) — preliminary resource estimate and allocation request
 - [`docs/ethics.md`](docs/ethics.md) — consent, data governance, responsible release, and AI-tool disclosure
 - [`docs/references.md`](docs/references.md) — research and official sources
 - [`README.th.md`](README.th.md) — Thai-language overview
