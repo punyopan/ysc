@@ -1,25 +1,26 @@
 cff-version: 1.2.0
 message: "If you use this research proposal, please cite it using the metadata below."
-title: "ScaleGap-TH: The Accuracy-Compute Frontier for Thai Audio Deepfake Detection under G.711 Telephone Coding"
+title: "BandGap-TH: Bandwidth versus Companding in Thai Audio Deepfake Detection under Telephone-Band Conditions"
 type: software
 authors:
   - family-names: "punyo_o"
 repository-code: "https://github.com/punyopan/ysc"
 url: "https://github.com/punyopan/ysc"
 license: MIT
-version: 0.3.0
+version: 0.5.0
 date-released: 2026-08-19
 abstract: >-
-  A focused research proposal measuring whether G.711 telephone coding degrades
-  small-capacity Thai audio-deepfake detectors more than large-capacity ones,
-  with a bandwidth-only control, paired difference-in-differences estimates, and
-  an on-device deployment measurement.
+  A research proposal estimating how bandwidth reduction and logarithmic
+  companding contribute to degradation in Thai audio-deepfake detection under
+  simulated G.711 conditions. The study measures detection performance across
+  low-pass cutoff frequencies and tests whether training with band-limited
+  audio recovers some of the lost performance.
 keywords:
   - audio deepfake detection
   - Thai speech
-  - accuracy-compute trade-off
-  - efficient inference
-  - on-device deployment
+  - bandwidth limitation
+  - companding
   - G.711
   - telephone speech
+  - data augmentation
   - anti-spoofing
