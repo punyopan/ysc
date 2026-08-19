@@ -2,115 +2,98 @@
 
 ## Committed study
 
-ScaleGap-TH asks one question: whether Thai telephone-channel robustness comes from model size or from self-supervised pretraining, and whether a phone-sized detector can inherit it.
+BandGap-TH asks where telephone-channel damage to Thai audio-deepfake detection comes from, how much bandwidth detection survives, and whether band-limited training recovers the loss.
 
-Committed work:
+The plan is **tiered**. Tier 1 is the committed study and contains the original contribution. Tiers 2 and 3 are extensions with explicit go/no-go gates. Stopping at a gate is a preregistered decision, not a failure, and the report states plainly which tiers completed.
 
-- one frozen Thai dataset split;
-- five detector systems occupying three cells of a size × pretraining design, including one student distilled on clean data only;
-- four paired conditions (clean, 8 kHz control, μ-law, A-law);
-- two difference-in-differences contrasts, the bandwidth-versus-companding decomposition, a threshold-transfer check, and paired bootstrap intervals;
-- measured compute cost and on-device inference on one declared target device;
-- no new architecture, no state-of-the-art claim, and no real-platform transmission.
+## Tier structure
 
-## Hardware plan
+| Tier | Weeks | Contains | Delivers |
+| --- | --- | --- | --- |
+| **1 — core** | 1–7 | Decomposition set C0–C3, sweep set, LFCC-GMM, AASIST-L, AASIST | Attribution result, cutoff curve with collapse thresholds, threshold-transfer check |
+| **2 — mitigation** | 7–9 | AASIST-L retrained with band-limited augmentation | Recovery figure and the cost of augmentation on clean audio |
+| **3 — optional** | 9–11 | WavLM + AASIST back-end; on-device export and demo | Whether SSL pretraining changes the curve; deployment measurement |
 
-The deployment arm needs one declared target device, purchased and configured in week 1 so that H4's budgets can be preregistered against real measurements rather than guesses.
+**Tier 1 alone is a complete, defensible project.** It contains the bandwidth-versus-companding attribution, which is the piece not done in any language, and it runs on a single consumer GPU. Tier 2 turns diagnosis into an attempted remedy. Tier 3 is genuinely optional.
 
-- **Target device:** a single-board computer or mid-range Android handset, chosen for price and availability in Thailand and fixed before preregistration.
-- **Runtime:** one exported inference runtime, pinned by version.
-- **Budgets:** real-time factor and peak resident memory thresholds are set after a week-4 pilot measurement on the actual device and then frozen.
-- **Measurement protocol:** fixed input length, fixed repetition count, recorded thermal state, median and spread reported.
+### Go/no-go gates
 
-Only the smallest detector meeting the accuracy bar is exported to the device. The large WavLM systems are not deployment candidates and are measured on the workstation only.
+| Gate | Week | Proceed if | Otherwise |
+| --- | --- | --- | --- |
+| **G1** | 3 | Transformation manifests pass integrity tests and the resampler null check passes | Fix the pipeline before any training. Nothing downstream is valid without this |
+| **G2** | 7 | At least two detectors produce scores across all conditions | Report Tier 1 with the detectors that completed; do not start Tier 2 |
+| **G3** | 9 | Tier 1 analysis is complete and reproduces from saved predictions | Stop at Tier 1 and write up. Do not start Tier 3 |
+| **G4** | 11 | Tier 3 completes cleanly | Report as not attempted; it is declared optional from the start |
 
-If the device is delayed or export fails, H4 is reported as not tested. H1–H3 do not depend on it.
+Work is written up as it completes. A finished Tier 1 with an explicit statement of what was not attempted is worth more than a half-finished Tier 3.
 
 ## Compute plan
 
-The intended production resource is the ThaiSC LANTA supercomputer, subject to allocation approval. ThaiSC reports that LANTA contains 176 GPU nodes with four NVIDIA A100 GPUs per node and high-performance parallel storage.
+Tier 1 is deliberately light. Channel and sweep generation are CPU-only. LFCC-GMM is CPU. AASIST-L and AASIST are small enough to train on a single modest GPU. Tier 2 adds one retraining run of an already-working architecture. Only Tier 3's WavLM system needs substantial GPU time.
 
-The design works in the schedule's favour: LFCC-GMM and channel generation are CPU-oriented, and AASIST-L, AASIST and the distilled student are all small enough to train on a single modest GPU. Only the large WavLM system needs substantial GPU time, and distillation runs against cached teacher outputs rather than re-running the teacher each step.
+The intended production resource is the ThaiSC LANTA supercomputer, subject to allocation, but **LANTA is not required for Tier 1 or Tier 2** — it shortens them. See [`compute-request.md`](compute-request.md) for the estimate and the access route.
 
-Before requesting a full allocation, a pilot subset will measure:
-
-1. peak GPU memory;
-2. examples per second;
-3. epoch time and convergence;
-4. feature-cache and checkpoint storage; and
-5. deterministic restart from checkpoints.
-
-The LANTA request will be based on measured pilot usage, five detector configurations, the declared seed policy, and one final scoring pass. No unsupported GPU-hour estimate will be placed in the proposal.
-
-A preliminary, clearly-labelled estimate and a draft allocation request are kept separately in [`compute-request.md`](compute-request.md). Those figures are for asking a host project a bounded question, not for the proposal; the pilot replaces them.
+Before requesting any allocation, a week-4 pilot measures peak GPU memory, examples per second, epoch time, storage, and deterministic restart from checkpoints, replacing every estimate with a measurement.
 
 ### Compute fallback
 
-If LANTA access is delayed:
+1. Generate and verify all manifests locally — this is CPU work and cannot be blocked by GPU availability.
+2. Complete LFCC-GMM first; it validates the whole scoring pipeline end to end.
+3. Complete AASIST-L, then AASIST.
+4. Run Tier 2 augmentation on AASIST-L only.
+5. Drop Tier 3 first if compute is short.
+6. Report any incomplete detector as missing rather than extrapolating.
 
-1. generate and verify C0–C3 manifests locally;
-2. complete LFCC-GMM first;
-3. complete AASIST-L and AASIST, which are tractable on a single GPU;
-4. complete the large WavLM system next, since both DiD contrasts depend on it — it is the distillation teacher and the large arm of the size contrast;
-5. distil the student from cached teacher outputs;
-6. reduce neural repetitions only if declared before final scoring; and
-7. report any incomplete detector as missing rather than fabricate or extrapolate results.
-
-Both contrasts depend on the distilled student, which in turn depends on the teacher. If the teacher completes but distillation fails to reach its preregistered clean-data accuracy bar, H1 and H2 are reported as untestable and the project reports absolute degradation plus the bandwidth-versus-companding decomposition, which does not depend on the student.
+The attribution result and the cutoff curve depend only on scoring frozen detectors across conditions. They survive almost any compute reduction, because inference is cheap and the sweep adds no training at all.
 
 ## Risks
 
 | Risk | Response | Claim limitation |
 | --- | --- | --- |
-| Thai dataset approval delayed | Apply in week 1; the frontier question is answerable on ASVspoof | Fallback result labelled non-Thai |
-| CSS already covers Thai telephony | Confirmed in [4]; channel protocol is stated as a replication throughout | No first-Thai-telephony claim |
-| Thesis [12] covers more channel conditions than expected | Read in week 1; update novelty position in research-plan.md §2 | Contribution narrowed to size vs pretraining and the C1 decomposition |
-| Distillation fails to reach the clean accuracy bar | Preregistered bar; report as failed distillation | H1 and H2 untestable; C1 decomposition still stands |
-| Missing speaker/script metadata | Remove ambiguous samples or restrict claims | Reduced dataset coverage |
-| Too few samples after disjoint splitting | Report intervals and power limitation | No strong subgroup claims |
-| Corrupted codec output | Reject by preregistered integrity rule and document count | No silent replacement |
-| Resampler introduces a class-separable artifact | Null check in week 3 before any scoring | Bandwidth effect reinterpreted or condition dropped |
-| Neural training does not converge | Preserve failure as a reported outcome; do not tune on channel test | Smaller detector panel |
-| Target device or export toolchain fails | Report H4 as not tested | No deployment claim |
+| Thai dataset approval delayed | Apply week 1; all three questions are answerable on ASVspoof | Fallback result labelled non-Thai |
+| CSS/thesis already covers these channel conditions | Confirmed for telephony in [4]; channel protocol stated as replication throughout | No first-Thai-telephony claim |
+| Resampler introduces a class-separable artifact | Week-3 null check at gate G1; the sweep is immune by construction | Decomposition reinterpreted or C1 redesigned |
+| Filter design confounds the sweep | One pinned filter design and transition band; only cutoff varies | Curve is specific to that filter |
+| Neural training does not converge | Preserve failure as a reported outcome; LFCC-GMM still yields a curve | Smaller detector panel |
+| Augmentation helps on channel but hurts on clean | Report both, not only the benefit | Recovery reported with its cost |
+| Target device or export toolchain fails | Tier 3 is optional | No deployment claim |
 
 ## 12-week schedule
 
 | Weeks | Deliverable | Exit condition |
 | --- | --- | --- |
-| 1 | Adviser review, YSC/SRC/IRB decision, dataset requests, priority reads [4], [12], [19], target device ordered | Required approvals identified; novelty position in research-plan.md §2 updated against what those papers actually report |
+| 1 | Adviser review, YSC/SRC/IRB decision, dataset requests, priority reads [4], [12], [19] | Approvals identified; novelty position in `research-plan.md` §2 updated against what those papers report |
 | 2 | Dataset inventory, license log, immutable split specification | Speaker/source leakage audit passes |
-| 3 | C0–C3 transformation implementation and resampler null check | Paired manifests and integrity tests pass; no class-separable resampling artifact |
-| 4 | LFCC-GMM baseline, compute pilot, device pilot measurement | End-to-end scoring reproduces from a clean environment; H4 budgets set from real numbers; estimates in `compute-request.md` replaced by measurements |
-| 5 | AASIST-L and AASIST training; LANTA request and job configuration | Frozen configurations produce C0 scores; measured resource estimate recorded |
-| 6–7 | WavLM + AASIST back-end, LoRA-adapted (the distillation teacher) | Frozen configuration produces C0 scores; teacher outputs cached |
-| 8 | Distil student on clean data only, to preregistered target size | Student meets clean-data accuracy bar, or failed distillation is recorded |
-| 9 | Freeze models, thresholds, transformations, budgets, and analysis plan | No channel test result has influenced tuning |
-| 10 | Final C0–C3 scoring; export smallest qualifying detector to device | Prediction files exist for every valid source-condition pair |
-| 11 | DiD, bootstrap, threshold transfer, frontier plots, on-device benchmark | Tables and plots reproduce directly from saved predictions |
+| 3 | Decomposition and sweep transformation pipelines | **G1:** paired manifests and integrity tests pass; resampler null check passes |
+| 4 | LFCC-GMM baseline and compute pilot | End-to-end scoring reproduces from a clean environment; estimates replaced by measurements |
+| 5 | AASIST-L training | Frozen configuration produces C0 scores |
+| 6 | AASIST training | Frozen configuration produces C0 scores |
+| 7 | Freeze models and thresholds; score all conditions | **G2:** predictions exist for every valid source-condition pair |
+| 8 | Attribution analysis and cutoff curve | Tables and curves reproduce directly from saved predictions |
+| 9 | Tier 2 — AASIST-L with band-limited augmentation, scored on all conditions | **G3:** recovery figure and clean-audio cost reported |
+| 10–11 | Tier 3 if gates permit — WavLM system, on-device export, demo | **G4:** completes cleanly or is reported as not attempted |
 | 12 | Error analysis, report, model card, limitations, demo rehearsal | Claims match preregistered scope and intervals |
 
 ## Minimum viable completion
 
-A defensible minimum result consists of:
+- Decomposition set and sweep set generated and integrity-checked
+- At least two detectors scored across all conditions
+- Attribution result with paired bootstrap intervals
+- Cutoff curve with at least one collapse threshold and its interval
+- Fixed-threshold error rates
+- An explicit limitations section stating what was not attempted
 
-- at least three completed detectors including both ends of one preregistered contrast;
-- clean, bandwidth-control, μ-law, and A-law results;
-- paired source-level predictions;
-- `ΔEER` intervals and at least one `DiD` interval;
-- the bandwidth-versus-companding decomposition, which stands independently of the contrasts;
-- fixed-threshold error rates;
-- measured parameters and MACs for every completed detector; and
-- an explicit limitations section.
-
-Real calls, messaging applications, packet loss, replay, unseen generators, and mitigation training are outside the schedule.
+Real calls, messaging applications, packet loss, replay, and unseen generators are outside the schedule at every tier.
 
 ## Demonstration
 
-The deployment arm doubles as the competition demonstration: the exported detector running on the target device, scoring G.711-coded Thai audio in real time, with the measured real-time factor and memory figures shown alongside.
+If Tier 3 completes, the deployment arm doubles as the competition demonstration: AASIST-L running on the target device, scoring band-limited and G.711-coded Thai audio in real time, shown alongside the cutoff curve.
 
-The demonstration must display uncertainty and must not present a single score as a verdict. Presentation rules:
+The most effective demonstration is the curve itself — playing the same utterance at successive cutoffs so a judge hears the band disappearing while watching the score move.
 
-- show the score and the frozen operating threshold, not a bare "real/fake" label;
+Presentation rules:
+
+- show the score and the frozen operating threshold, never a bare "real/fake" verdict;
 - state the measured false-positive and false-negative rates at that threshold;
 - use only project-owned or dataset-licensed audio in public demonstrations;
 - never demonstrate on a bystander's voice without consent.
@@ -118,22 +101,20 @@ The demonstration must display uncertainty and must not present a single score a
 ## Reproducibility checklist
 
 - [ ] Dataset permissions, versions, and exclusions recorded
-- [ ] Storage location for restricted audio approved by the dataset licence and ethics decision
 - [ ] Required ethics/SRC/IRB decision recorded
-- [ ] Prior-work check on [12] documented
+- [ ] Priority reads [4], [12], [19] completed and novelty position updated
+- [ ] Storage location for restricted audio approved by licence and ethics decision
 - [ ] Split and transformation manifest hashes saved
-- [ ] G.711 implementation, resampler, and software versions pinned
+- [ ] G.711 implementation, resampler, and low-pass filter design pinned by version
 - [ ] Resampler null check passed and recorded
+- [ ] Sweep confirmed to run at a fixed 16 kHz sample rate throughout
 - [ ] Detector revisions, configs, and random seeds saved
-- [ ] Distillation recipe and student target size frozen before channel scoring
-- [ ] Confirmed no channel-condition data entered distillation
+- [ ] Augmentation applied to training data only, never to the test manifest
 - [ ] Development thresholds frozen before channel scoring
-- [ ] Target device, runtime, and measurement protocol recorded
-- [ ] H4 budgets frozen before final scoring
-- [ ] Jobs checkpoint and resume successfully
+- [ ] Collapse-threshold definitions frozen before scoring
 - [ ] Source-level predictions retained
-- [ ] Bootstrap code moves all versions of one source together
-- [ ] Tables and frontier plots regenerate from predictions without manual editing
+- [ ] Bootstrap code moves all conditions of one source together
+- [ ] Tables and curves regenerate from predictions without manual editing
 
 ## External resources
 

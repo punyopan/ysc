@@ -1,42 +1,41 @@
 flowchart TB
-    A[Thai test source<br/>genuine or spoof] --> C0[C0: clean<br/>16 kHz PCM]
-    A --> C1[C1: bandwidth control<br/>8 kHz linear PCM]
-    A --> C2[C2: G.711 μ-law<br/>8 kHz round trip]
-    A --> C3[C3: G.711 A-law<br/>8 kHz round trip]
+    A[Thai test source<br/>genuine or spoof] --> DEC
+    A --> SW
 
-    C0 --> D
-    C1 --> D
-    C2 --> D
-    C3 --> D
-
-    subgraph D [Frozen detector panel — size x pretraining]
+    subgraph DEC [Decomposition set — attribution]
         direction TB
-        D1[LFCC-GMM<br/>classical floor]
-        D2[AASIST-L ~85K<br/>small, from-scratch]
-        D3[AASIST ~297K<br/>small, from-scratch]
-        D4[Distilled student ~1M<br/>small, PRETRAINED]
-        D5[WavLM + AASIST ~94M<br/>large, pretrained]
-        D5 -. distil on clean data only .-> D4
+        C0[C0: clean<br/>16 kHz linear PCM]
+        C1[C1: 8 kHz LINEAR PCM<br/>bandwidth only, no companding]
+        C2[C2: G.711 μ-law<br/>bandwidth + companding]
+        C3[C3: G.711 A-law<br/>bandwidth + companding]
     end
 
-    D --> E[Paired source-level scores<br/>+ measured params, MACs, latency]
+    subgraph SW [Sweep set — dose-response, fixed 16 kHz throughout]
+        direction LR
+        S1[8000 Hz] --- S2[6000] --- S3[4000] --- S4[3400] --- S5[2500] --- S6[1500] --- S7[800]
+    end
 
-    E --> I1[DiD pretraining<br/>AASIST-L vs student<br/>size held constant]
-    E --> I2[DiD size<br/>student vs WavLM+AASIST<br/>pretraining held constant]
-    E --> H[Bandwidth vs companding<br/>decomposition from C1]
-    E --> F[ΔEER per detector with paired<br/>cluster-bootstrap intervals]
-    E --> G[Threshold-transfer check<br/>secondary, follows ref 19]
-    E --> J[On-device deployment<br/>real-time factor and memory]
+    DEC --> D[Frozen detectors<br/>LFCC-GMM · AASIST-L · AASIST<br/>+ WavLM+AASIST, optional]
+    SW --> D
+
+    D --> E[Paired source-level scores]
+
+    E --> R1[ATTRIBUTION<br/>bandwidth part = C1 − C0<br/>companding part = G711 − C1]
+    E --> R2[DOSE-RESPONSE<br/>EER vs cutoff curve<br/>collapse thresholds]
+    E --> R4[Threshold-transfer check<br/>secondary, follows ref 19]
+
+    AUG[AASIST-L retrained with<br/>band-limited augmentation] --> R3[MITIGATION<br/>recovery fraction<br/>+ cost on clean audio]
+    E --> R3
 
     classDef source fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;
     classDef condition fill:#fef3c7,stroke:#b45309,color:#78350f;
+    classDef control fill:#ffedd5,stroke:#c2410c,color:#7c2d12;
     classDef detector fill:#ede9fe,stroke:#6d28d9,color:#3b0764;
-    classDef student fill:#fce7f3,stroke:#be185d,color:#831843;
     classDef analysis fill:#dcfce7,stroke:#15803d,color:#14532d;
     classDef primary fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d;
     class A source;
-    class C0,C1,C2,C3 condition;
-    class D1,D2,D3,D5 detector;
-    class D4 student;
-    class E,F,G,J analysis;
-    class I1,I2,H primary;
+    class C0,C2,C3,S1,S2,S3,S4,S5,S6,S7 condition;
+    class C1 control;
+    class D,AUG detector;
+    class E,R4 analysis;
+    class R1,R2,R3 primary;

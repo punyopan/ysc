@@ -1,4 +1,4 @@
-# Compute Resource Request — ScaleGap-TH
+# Compute Resource Request — BandGap-TH
 
 ## Status of the numbers in this document
 
@@ -21,7 +21,7 @@ On LANTA, **1 SHr = one compute node for one hour**, and **one GPU node-hour cos
 
 ## Working-set assumptions
 
-The estimates assume a deliberately subsampled corpus, not the full source dataset:
+Estimates assume a deliberately subsampled corpus, not the full source dataset:
 
 | Partition | Source utterances |
 | --- | --- |
@@ -29,46 +29,55 @@ The estimates assume a deliberately subsampled corpus, not the full source datas
 | Development | ~5,000 |
 | Test | ~10,000 |
 
-Test sources are scored in all four conditions (C0–C3), giving ~40,000 scored files per detector. Splits are speaker-disjoint as specified in [`research-plan.md`](research-plan.md).
+Test sources are scored in four decomposition conditions and seven sweep conditions — eleven conditions per detector. Splits are speaker-disjoint as specified in [`research-plan.md`](research-plan.md).
 
 ## Estimated resource requirement
 
-| Component | Runs on | Est. GPU node-hours | Est. SHr |
-| --- | --- | --- | --- |
-| C0–C3 channel generation | CPU, trivially parallel | — | ~1 |
-| LFCC-GMM baseline | CPU | — | ~5 |
-| AASIST-L + AASIST, 3 seeds each | GPU, 4 jobs packed per node | ~20 | ~60 |
-| WavLM + AASIST back-end, LoRA-adapted, 3 seeds — the distillation teacher | GPU, the only substantial training job | ~15 | ~45 |
-| Teacher output caching over clean training data | GPU, inference only | ~2 | ~6 |
-| Distilled student, 3 seeds, trained against cached teacher outputs | GPU, small model | ~8 | ~24 |
-| Final C0–C3 scoring, all detectors | GPU, inference only | ~2 | ~6 |
-| **Subtotal** | | **~47** | **~147** |
-| Contingency — first-time HPC use, failed jobs, restarts | | ~2× | **~300–350** |
+Costs are given per tier, because Tier 1 is the committed study and the later tiers are extensions with go/no-go gates.
 
-**Requested: approximately 350 SHr.**
+| Component | Tier | Runs on | Est. GPU node-hours | Est. SHr |
+| --- | --- | --- | --- | --- |
+| Decomposition + sweep generation | 1 | CPU, trivially parallel | — | ~2 |
+| LFCC-GMM baseline | 1 | CPU | — | ~5 |
+| AASIST-L + AASIST, 3 seeds each | 1 | GPU, 4 jobs packed per node | ~20 | ~60 |
+| Scoring all detectors across 11 conditions | 1 | GPU, inference only | ~4 | ~12 |
+| **Tier 1 subtotal** | | | **~24** | **~79** |
+| AASIST-L retrained with augmentation, 3 seeds | 2 | GPU, small model | ~8 | ~24 |
+| Scoring the augmented model | 2 | GPU, inference only | ~2 | ~6 |
+| **Tier 2 subtotal** | | | **~10** | **~30** |
+| WavLM + AASIST back-end, 3 seeds | 3 | GPU, the only substantial training job | ~15 | ~45 |
+| **Tier 3 subtotal** | | | **~15** | **~45** |
+| **All tiers** | | | **~49** | **~154** |
+| Contingency — first-time HPC use, failed jobs, restarts | | | ~2× | **~300** |
+
+**Requested: approximately 300 SHr for all three tiers, or approximately 160 SHr for Tiers 1 and 2 alone.**
 
 At the Thai government/education rate this is on the order of a single minimum-size LANTA project. The request is small by design.
 
+**Tier 1 does not require LANTA.** It runs on a single consumer GPU; an allocation shortens it rather than enabling it. This is worth stating plainly in any request, because it means the project cannot be blocked by an allocation decision.
+
 ### Storage
 
-Approximately 30 GB for the working set across four conditions, at 4 seconds and 16 kHz 16-bit per utterance, plus a WavLM feature cache and checkpoints. This is not a parallel-filesystem-scale requirement.
+Approximately 40 GB. The sweep multiplies conditions but applies to the test partition only — no training uses sweep audio — so the cost is eleven conditions over ~10,000 test sources plus a single clean copy of the training partition. Not a parallel-filesystem-scale requirement.
 
 ## What drives the cost up
 
-Three decisions dominate the budget. Each is preregistered so the number cannot drift silently.
+Three decisions dominate the budget, each preregistered so the number cannot drift.
 
-1. **Corpus size.** The Chula Spoofed Speech dataset contains roughly 1.33 million utterances. Using all of it would raise storage and compute by roughly 25× and would not improve the design, which needs speaker-disjoint paired splits rather than maximum volume. The subsample above is deliberate.
-2. **Seed count.** Three seeds triples the neural budget. If the host allocation is tight, the declared fallback is one seed for the large WavLM system, declared before final scoring rather than after. The student keeps three seeds where possible, since distillation variance is a confound for the primary contrast.
-3. **Node packing.** A GPU node bills as four A100s whether or not all four are used. Seed replicates and independent detector runs are packed onto a single node; running one job per node would waste roughly 75% of the charge.
+1. **Corpus size.** The Chula Spoofed Speech dataset contains roughly 1.33 million utterances. Using all of it would raise storage and compute by roughly 25× without improving a design that needs speaker-disjoint paired splits rather than maximum volume.
+2. **Seed count.** Three seeds triples the neural budget. If the host allocation is tight, the declared fallback is one seed for Tier 3, declared before final scoring rather than after.
+3. **Node packing.** A GPU node bills as four A100s whether or not all four are used. Seed replicates and independent detector runs are packed onto a single node; running one job per node wastes roughly 75% of the charge.
+
+The sweep, notably, is **not** a cost driver. It adds inference conditions only — no training runs on sweep audio — so seven extra cutoff points cost a few node-hours of scoring.
 
 ## Graceful degradation
 
-If the allocation is reduced, the project does not fail — it narrows, in this order:
+The tier structure is the degradation plan. If the allocation is reduced:
 
-1. Channel generation, LFCC-GMM, AASIST-L and AASIST complete on a single consumer GPU.
-2. The large WavLM system is prioritized next, because it is both the distillation teacher and the large arm of the size contrast — both DiD contrasts depend on it.
-3. The distilled student trains against cached teacher outputs, so it is cheap once the teacher exists.
-4. If distillation fails its preregistered clean-data accuracy bar, both contrasts are reported as untestable, and the bandwidth-versus-companding decomposition — which does not depend on the student — still stands as a result.
+1. Manifest generation and LFCC-GMM are CPU work and cannot be blocked.
+2. Tier 1's attribution result and cutoff curve depend only on scoring frozen detectors, so they survive almost any compute reduction.
+3. Tier 2 is one retraining run of an architecture already known to work.
+4. Tier 3 is dropped first and reported as not attempted.
 
 Any detector that does not complete is reported as missing, never extrapolated.
 
@@ -88,15 +97,15 @@ To adapt before sending — replace the bracketed parts and have the adviser rev
 
 > Dear [name],
 >
-> I am a YSC entrant working with [adviser name] at [school] on ScaleGap-TH, a study of Thai audio-deepfake detection under G.711 telephone coding. The question is whether channel robustness comes from model size or from self-supervised pretraining — the literature entangles the two, because the robust systems are large precisely because they are SSL-pretrained. If robustness comes from pretraining rather than size, a small distilled detector can inherit it and run on affordable hardware; if it comes from size, edge deployment is genuinely constrained. This matters for Thailand because voice-cloning scams arrive by telephone, on a narrowband channel.
+> I am a YSC entrant working with [adviser name] at [school] on BandGap-TH, a study of Thai audio-deepfake detection under telephone-band conditions. A telephone codec does two things at once — it low-pass filters away everything above about 3.4 kHz, and it requantizes to 8-bit logarithmic. Published work applies the codec whole and reports a single degradation figure, so nobody knows which half causes the damage. The distinction decides whether the problem is fixable in software or is a limit of the network: if the evidence is filtered away it no longer exists, whereas quantization noise is recoverable. We measure the split, sweep the cutoff to find where detection collapses, and test whether band-limited training wins the loss back. This matters for Thailand because voice-cloning scams arrive over narrowband telephone calls.
 >
 > I would like to ask whether I could run this as a team member under an existing project, rather than requesting a separate allocation.
 >
-> The request is small and bounded: approximately **350 SHr including contingency**, and roughly **30 GB** of storage. Most of the work is CPU-only or runs on a single GPU; only one detector configuration requires substantial GPU training. A full breakdown is at [repository link].
+> The request is small and bounded: approximately **300 SHr including contingency** for the full plan, or about **160 SHr** for the two committed tiers, and roughly **40 GB** of storage. The core study runs on a single consumer GPU — an allocation would shorten it rather than enable it — and only one optional configuration requires substantial GPU training. A full breakdown is at [repository link].
 >
-> These are preliminary estimates. I plan a pilot in week 4 to measure actual peak memory, throughput, and epoch time, and I will report measured figures back before scaling up. If the allocation is tighter than this, the study degrades gracefully — the smaller detectors complete on modest hardware and still answer a reduced version of the question.
+> These are preliminary estimates. I plan a pilot in week 4 to measure actual peak memory, throughput, and epoch time, and I will report measured figures back before scaling up. The study is tiered with explicit stopping points, so a tighter allocation simply means completing fewer tiers rather than failing.
 >
-> The project produces artifacts that may be reusable beyond it: a paired G.711-transformed Thai spoofing evaluation set, a reproducible channel-transformation pipeline, and source-level predictions across four conditions.
+> The project produces artifacts that may be reusable beyond it: a paired band-limited and G.711-transformed Thai spoofing evaluation set, a reproducible transformation pipeline, and source-level predictions across eleven conditions.
 >
 > One question before anything is uploaded: if restricted dataset audio would be stored under the host project, I would need to confirm that the dataset licence and our ethics approval cover that location and the project's access list. I would rather resolve that in advance.
 >

@@ -4,7 +4,7 @@
 
 This is a pre-study governance plan, not ethics approval. The student researcher and adviser must use the current YSC forms and obtain every required SRC, IRB, or institutional approval before protected-data use or participant recording.
 
-ScaleGap-TH is designed to use existing, licensed speech datasets and deterministic offline G.711 transformations. It does not require placing telephone calls, using messaging platforms, or exposing audio to third-party transmission services.
+BandGap-TH is designed to use existing, licensed speech datasets and deterministic offline G.711 transformations. It does not require placing telephone calls, using messaging platforms, or exposing audio to third-party transmission services.
 
 ## Existing datasets
 
@@ -47,9 +47,9 @@ Minors require the assent and guardian-consent process specified by the responsi
 
 The public repository may contain code, configuration, schemas, hashes, aggregate tables, and artifacts whose licenses explicitly permit release.
 
-## G.711 transformation safety
+## Transformation safety
 
-C0–C3 are offline transformations of the same approved source recordings. No audio will be sent through an actual phone network. The transformed copies inherit the source dataset's access and redistribution restrictions and must be deleted on the same schedule unless the approval states otherwise.
+The decomposition and sweep conditions are offline transformations of the same approved source recordings. No audio will be sent through an actual phone network. The transformed copies inherit the source dataset's access and redistribution restrictions and must be deleted on the same schedule unless the approval states otherwise.
 
 Every condition must be applied symmetrically to genuine and spoof audio. Asymmetric processing could create a misleading classifier shortcut and an invalid result.
 
@@ -100,7 +100,7 @@ Suggested disclosure to adapt to the official form:
 - [ ] Obtain the required SRC/IRB decision before protected-data use
 - [ ] Record the license and approval for every dataset
 - [ ] Approve access-control, retention, and deletion procedures
-- [ ] Confirm that C0–C3 transformations remain within permitted use
+- [ ] Confirm that decomposition and sweep transformations remain within permitted use
 - [ ] Confirm demonstration audio is licensed for public playback
 - [ ] Confirm the demo device neither transmits nor stores captured audio
 - [ ] Audit the public repository for restricted data and identifiers
