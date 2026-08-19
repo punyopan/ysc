@@ -2,22 +2,22 @@
 
 **English** | [ภาษาไทย](README.th.md)
 
-**How much does telephone bandwidth limit Thai voice-deepfake detection, and when does detection begin to fail?**
+**Phone lines throw away most of the audio. Do they also throw away the evidence that a Thai voice was faked?**
 
-BandGap-TH is a YSC Thailand research proposal. It separates two effects of telephone coding, measures how detection changes as audio bandwidth is reduced, and tests whether training with band-limited audio can recover some of the lost performance.
+BandGap-TH is a research proposal for YSC Thailand. A telephone codec damages audio in two ways at once, and this project pulls the two apart to find out which one actually breaks deepfake detection. It then narrows the audio band step by step to locate the point where detection gives out, and checks whether retraining on narrowed audio buys any of it back.
 
 ## The problem
 
-Thai voice-cloning scams often reach victims by telephone. A conventional G.711 telephone path carries a narrow voice-frequency band of roughly 300–3400 Hz [3]. Some artifacts used to distinguish synthetic speech may lie outside that range, so a detector trained on clean wideband audio may rely on information that is missing from telephone audio.
+Voice-cloning scams in Thailand come in over the phone. A phone line is narrow: G.711 keeps only about 300 to 3400 Hz [3]. The giveaways that vocoders and TTS systems leave behind mostly sit above that. So a detector trained on clean, full-bandwidth audio may be leaning on evidence that never reaches the far end of the call.
 
-Published work shows that codecs can degrade detection [2, 10], and Thai telephony evaluations already exist [4, 12]. However, these studies do not clearly separate two effects that occur together in a G.711 path:
+That codecs hurt detection is known [2, 10], and Thai telephony has been evaluated before [4, 12]. What no one has pulled apart is which half of the codec causes it. A telephone codec is really two operations running at the same time:
 
 | | What it does | Consequence |
 | --- | --- | --- |
-| **Bandwidth reduction** | Removes frequencies above roughly 3.4 kHz | Information in the removed band is no longer available to the detector |
-| **Companding** | Requantizes 16-bit linear audio to 8-bit logarithmic A-law or μ-law | Information remains, but the signal is changed by quantization |
+| **Bandwidth reduction** | Filters out everything above roughly 3.4 kHz | The evidence is gone for good, and no amount of training brings it back |
+| **Companding** | Requantizes 16-bit linear to 8-bit logarithmic (A-law/μ-law) | The evidence is still there, buried in quantization noise, so it can be recovered |
 
-Studies usually apply the complete codec and report one overall result. Measuring the two contributions separately can show whether model training is likely to help or whether missing bandwidth is the larger limitation.
+Every study so far runs the codec end to end and reports one number, which is the two effects added together. Knowing which of them is larger decides whether better training can fix this, or whether the network itself sets the ceiling.
 
 ## Research questions
 
