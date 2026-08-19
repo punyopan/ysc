@@ -1,21 +1,25 @@
 cff-version: 1.2.0
 message: "If you use this research proposal, please cite it using the metadata below."
-title: "BenchmarkGap-TH: Clean-Benchmark versus G.711 Performance in Thai Audio Deepfake Detection"
+title: "ScaleGap-TH: The Accuracy-Compute Frontier for Thai Audio Deepfake Detection under G.711 Telephone Coding"
 type: software
 authors:
   - family-names: "punyo_o"
 repository-code: "https://github.com/punyopan/ysc"
 url: "https://github.com/punyopan/ysc"
 license: MIT
-version: 0.2.0
-date-released: 2026-08-18
+version: 0.3.0
+date-released: 2026-08-19
 abstract: >-
-  A focused research proposal measuring whether clean-benchmark performance
-  and detector ranking transfer to paired G.711 telephone-coded Thai speech.
+  A focused research proposal measuring whether G.711 telephone coding degrades
+  small-capacity Thai audio-deepfake detectors more than large-capacity ones,
+  with a bandwidth-only control, paired difference-in-differences estimates, and
+  an on-device deployment measurement.
 keywords:
   - audio deepfake detection
   - Thai speech
-  - benchmark generalization
+  - accuracy-compute trade-off
+  - efficient inference
+  - on-device deployment
   - G.711
   - telephone speech
   - anti-spoofing

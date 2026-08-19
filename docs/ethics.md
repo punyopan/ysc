@@ -4,7 +4,7 @@
 
 This is a pre-study governance plan, not ethics approval. The student researcher and adviser must use the current YSC forms and obtain every required SRC, IRB, or institutional approval before protected-data use or participant recording.
 
-BenchmarkGap-TH is designed to use existing, licensed speech datasets and deterministic offline G.711 transformations. It does not require placing telephone calls, using messaging platforms, or exposing audio to third-party transmission services.
+ScaleGap-TH is designed to use existing, licensed speech datasets and deterministic offline G.711 transformations. It does not require placing telephone calls, using messaging platforms, or exposing audio to third-party transmission services.
 
 ## Existing datasets
 
@@ -53,10 +53,23 @@ C0–C3 are offline transformations of the same approved source recordings. No a
 
 Every condition must be applied symmetrically to genuine and spoof audio. Asymmetric processing could create a misleading classifier shortcut and an invalid result.
 
+## On-device deployment and public demonstration
+
+The deployment arm exports one small detector to a physical device and runs it in public at the competition. That creates obligations the offline experiment does not.
+
+- Demonstrate only on project-owned audio or audio whose license permits public playback. Restricted dataset audio must not be played at a booth unless the license explicitly allows it.
+- Never capture, score, or record a visitor's, judge's, or bystander's voice without their explicit prior consent, and do not retain any such audio.
+- The device must not transmit audio off-device during demonstration, and must not persist recordings to storage.
+- Display the score together with the frozen operating threshold and the measured false-positive and false-negative rates. A bare "real" or "fake" verdict misrepresents what the system knows.
+- State on the poster and verbally that the detector is a research measurement, not a product, and must not be used to make accusations about a real person.
+
+Exported model files inherit the release considerations in the misuse section below. A small model is easier to redistribute and therefore easier to probe for evasion; weigh that before publishing checkpoints.
+
 ## Responsible interpretation
 
 - A low EER does not prove that an individual recording is genuine.
 - A measured G.711 gap does not establish performance on real Thai phone networks.
+- A favourable accuracy-versus-compute result does not mean a small detector is safe to deploy; it means it met one preregistered budget on one device.
 - Report false-positive and false-negative consequences, not accuracy alone.
 - Avoid claims about demographic groups with insufficient sample size.
 - Do not market the detector as a forensic, banking, or law-enforcement decision system.
@@ -88,6 +101,8 @@ Suggested disclosure to adapt to the official form:
 - [ ] Record the license and approval for every dataset
 - [ ] Approve access-control, retention, and deletion procedures
 - [ ] Confirm that C0–C3 transformations remain within permitted use
+- [ ] Confirm demonstration audio is licensed for public playback
+- [ ] Confirm the demo device neither transmits nor stores captured audio
 - [ ] Audit the public repository for restricted data and identifiers
 - [ ] Add the final AI-tool disclosure to the submission
 
