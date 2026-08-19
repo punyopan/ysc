@@ -1,94 +1,100 @@
 # Feasibility and Execution Plan
 
-## Purpose
+## Committed study
 
-This document converts the proposal into a study that can be completed within a YSC development period. The core experiment is intentionally smaller than the full research vision. Code implementation is not yet part of this repository; method implementation may begin while access requests are pending, but protected data collection or use must wait for the required approval.
+BenchmarkGap-TH asks one question: whether clean Thai audio-deepfake benchmark performance predicts performance after a controlled G.711 telephone transformation.
 
-## Committed experiment
+Committed work:
 
-The project must complete these items before any stretch work:
-
-- **Models:** frozen WavLM classifier, single-LoRA WavLM, standard MoLEx, and ChannelMoLEx-TH
-- **Generalization:** at least two generator-family holdouts
-- **Channel groups:** telephony, Opus, lossy file compression, packet/network impairment, and replay/noise
-- **Evaluation:** clean, known-channel, unseen-channel, unseen-generator, and unseen-generator × unseen-channel conditions
-- **Ablations:** remove channel-conditioned routing, adversarial invariance, and cross-channel consistency one at a time
-- **Outputs:** reproducible manifests, configuration files, checkpoints, aggregate/disaggregated metrics, calibration analysis, and limitations
-
-RawNet2, AASIST, fully fine-tuned WavLM, additional generator families, real-platform transmission, tone/prosody auxiliaries, partial-deepfake localization, and conformal prediction are stretch goals.
+- one frozen Thai dataset split;
+- four detector families;
+- four paired conditions (clean, 8 kHz control, μ-law, A-law);
+- EER degradation, threshold transfer, paired bootstrap intervals, and exploratory rank stability;
+- no new architecture and no real-platform transmission.
 
 ## Compute plan
 
-The intended production resource is the ThaiSC **LANTA** supercomputer, subject to an approved allocation. ThaiSC reports that LANTA includes 176 GPU nodes with four NVIDIA A100 GPUs per node and high-performance parallel storage. This project will request LANTA access when the proposal, data permissions, and initial experiment configuration are ready.
+The intended production resource is the ThaiSC LANTA supercomputer, subject to allocation approval. ThaiSC reports that LANTA contains 176 GPU nodes with four NVIDIA A100 GPUs per node and high-performance parallel storage.
 
-Access is not assumed or guaranteed. The experiment design uses parameter-efficient LoRA experts so that each core run can target a single GPU. Before requesting a full allocation, a small pilot will measure:
+LFCC-GMM and channel generation are expected to be CPU-oriented. AASIST and WavLM variants require GPU training or inference. Before requesting a full allocation, a pilot subset will measure:
 
-1. peak GPU memory for representative audio lengths;
-2. examples processed per second;
-3. wall-clock time per epoch;
-4. storage per feature cache and checkpoint; and
-5. convergence behavior for the frozen-WavLM and single-LoRA baselines.
+1. peak GPU memory;
+2. examples per second;
+3. epoch time and convergence;
+4. feature-cache and checkpoint storage; and
+5. deterministic restart from checkpoints.
 
-The allocation request will be calculated from those measured values rather than an unsupported GPU-hour estimate. Runs will use fixed seeds and logged software/environment versions. Failed or pre-empted jobs will resume from checkpoints.
+The LANTA request will be based on measured pilot usage, four detector configurations, the declared seed policy, and one final scoring pass. No unsupported GPU-hour estimate will be placed in the proposal.
 
 ### Compute fallback
 
 If LANTA access is delayed:
 
-1. prepare manifests and channel augmentations on CPU/local resources;
-2. debug on a deliberately small development subset;
-3. run only the four committed variants and reduce the number of exploratory hyperparameter trials;
-4. use one generator-family holdout for development while preserving the second as the untouched final test; and
-5. postpone every stretch goal.
+1. generate and verify C0–C3 manifests locally;
+2. complete LFCC-GMM first;
+3. debug neural models on a small development subset;
+4. prioritize frozen WavLM and one LoRA configuration;
+5. reduce neural repetitions only if declared before final scoring; and
+6. report any incomplete detector as missing rather than fabricate or extrapolate results.
 
-The final report must clearly distinguish pilot, development, and untouched-test results.
+The research question requires multiple detector families. If fewer than three families complete successfully, rank analysis will be omitted and the project will report only detector-specific clean-to-G.711 degradation.
 
-## Dataset access plan
+## Data access risks
 
-| Risk | Primary path | Fallback | Claim limitation |
-|---|---|---|---|
-| CSS/SEA-Spoof access delayed | Apply early and record approval/version | Validate pipeline on lawfully accessible ASVspoof data | Do not claim Thai-language generalization |
-| Too few generator families | Add licensed or self-generated Thai spoof sources | Test two well-separated families only | State reduced coverage |
-| Speaker/script leakage | Build speaker-, script-, reference-, and checkpoint-disjoint manifests | Remove ambiguous samples | Report exclusions and counts |
-| Class/channel imbalance | Apply every channel symmetrically to bona fide and spoof audio | Rebalance by speaker, attack family, and channel | Report per-cell sample counts |
-| Real-platform access or consent unavailable | Use reproducible simulation as the main study | Omit real transmission | Do not imply platform robustness |
+| Risk | Response | Claim limitation |
+| --- | --- | --- |
+| Thai dataset approval delayed | Apply early; validate tooling on accessible ASVspoof data | No Thai conclusion from fallback data |
+| Missing speaker/script metadata | Remove ambiguous samples or restrict claims | Reduced dataset coverage |
+| Too few samples after disjoint splitting | Report intervals and power limitation | No strong subgroup claims |
+| Corrupted codec output | Reject by preregistered integrity rule and document count | No silent replacement |
+| Neural training does not converge | Preserve failure as a reported outcome; do not tune on channel test | Smaller detector panel |
 
-No restricted dataset will be downloaded before its current license and access conditions are accepted.
-
-## 16-week schedule
-
-The schedule is relative to formal project approval because the exact start date may change.
+## 12-week schedule
 
 | Weeks | Deliverable | Exit condition |
-|---|---|---|
-| 1–2 | Approvals, dataset requests, ethics/SRC/IRB decision, risk assessment | No data collection begins before required approval |
-| 2–3 | Dataset inventory and leakage-resistant manifest specification | Every sample has source, speaker, script, generator, and license metadata where available |
-| 3–4 | Reproducible five-group channel pipeline | Symmetry tests pass for genuine and spoof classes |
-| 4–5 | Frozen-WavLM pilot and measured compute budget | Memory, speed, storage, and training-time measurements recorded |
-| 5–6 | LANTA allocation request and job configuration | Reproducible environment and checkpoint/resume test completed |
-| 6–8 | Frozen-WavLM and single-LoRA baselines | Validation metrics reproduce from saved configs |
-| 8–10 | Standard MoLEx and ChannelMoLEx-TH | All four committed variants run on development splits |
-| 10–12 | Generator/channel holdouts and one-factor ablations | Primary experiment matrix complete |
-| 12–13 | Calibration, bootstrap intervals, leakage audit | Decision rule can be evaluated |
-| 13–14 | Untouched final test | No model or threshold changes after test access |
-| 14–16 | Error analysis, report, model card, limitations, reproducibility package | Tables trace back to saved predictions and configs |
+| --- | --- | --- |
+| 1 | Adviser review, YSC/SRC/IRB decision, dataset requests | Required approvals identified before protected-data use |
+| 2 | Dataset inventory, license log, immutable split specification | Speaker/source leakage audit passes |
+| 3 | C0–C3 transformation implementation | Paired manifests and integrity tests pass |
+| 4 | LFCC-GMM baseline and compute pilot | End-to-end scoring reproduces from a clean environment |
+| 5 | LANTA request and job configuration | Measured resource estimate and checkpoint-resume test recorded |
+| 5–6 | AASIST training | Frozen configuration produces C0 scores |
+| 6–7 | Frozen WavLM classifier | Frozen configuration produces C0 scores |
+| 7–8 | WavLM-LoRA | Frozen configuration produces C0 scores |
+| 9 | Freeze models, thresholds, transformations, and analysis plan | No channel test result has influenced tuning |
+| 10 | Final C0–C3 scoring | Prediction files exist for every valid source-condition pair |
+| 11 | Paired bootstrap, threshold transfer, and ranking analysis | Tables reproduce directly from saved predictions |
+| 12 | Error analysis, report, model card, and limitations | Claims match preregistered scope and intervals |
 
-If the project has only 12 weeks, weeks 1–10 stay in order, the real-platform track is omitted, ablations are limited to the three principal components, and report preparation begins in parallel after week 8.
+## Minimum viable completion
 
-## Resource and reproducibility checklist
+A defensible minimum result consists of:
 
-- [ ] Dataset permissions and versions recorded
-- [ ] YSC/SRC/IRB decision recorded before human-participant work
-- [ ] LANTA allocation approved or fallback activated
-- [ ] Pilot-derived compute request documented
-- [ ] Environment lock file and exact model revision saved
-- [ ] Random seeds and split hashes saved
-- [ ] Training jobs checkpoint and resume successfully
-- [ ] Prediction files retained for bootstrap analysis
-- [ ] Stretch experiments cannot delay the untouched final test
+- at least three completed detector families;
+- clean, bandwidth-control, μ-law, and A-law results;
+- paired source-level predictions;
+- `ΔEER` intervals;
+- fixed-threshold error rates; and
+- an explicit limitations section.
+
+Real calls, messaging applications, packet loss, replay, unseen generators, and mitigation training are outside the schedule.
+
+## Reproducibility checklist
+
+- [ ] Dataset permissions, versions, and exclusions recorded
+- [ ] Required ethics/SRC/IRB decision recorded
+- [ ] Split and transformation manifest hashes saved
+- [ ] G.711 implementation and software versions pinned
+- [ ] Detector revisions, configs, and random seeds saved
+- [ ] Development thresholds frozen before channel scoring
+- [ ] Jobs checkpoint and resume successfully
+- [ ] Source-level predictions retained
+- [ ] Bootstrap code moves all versions of one source together
+- [ ] Tables regenerate from predictions without manual editing
 
 ## External resources
 
-- ThaiSC LANTA system overview: https://thaisc.io/thaisc-resorces/lanta
-- ThaiSC services and access information: https://thaisc.io/services
+- ThaiSC LANTA overview: https://thaisc.io/thaisc-resorces/lanta
+- ThaiSC services and access: https://thaisc.io/services
 - YSC requirements: https://www.nstda.or.th/ysc/requirements/
+- ITU-T G.711: https://www.itu.int/rec/T-REC-G.711/

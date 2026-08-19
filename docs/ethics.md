@@ -2,95 +2,94 @@
 
 ## Status
 
-This is a pre-study governance plan, not an ethics approval. The student researcher and adviser must submit the current YSC forms and obtain every required SRC/IRB/institutional approval **before** collecting participant recordings or beginning any activity that requires prior review.
+This is a pre-study governance plan, not ethics approval. The student researcher and adviser must use the current YSC forms and obtain every required SRC, IRB, or institutional approval before protected-data use or participant recording.
 
-## Human-participant recordings
+BenchmarkGap-TH is designed to use existing, licensed speech datasets and deterministic offline G.711 transformations. It does not require placing telephone calls, using messaging platforms, or exposing audio to third-party transmission services.
 
-If new Thai speech is recorded, participation must be voluntary and based on understandable informed consent. The consent material should state:
+## Existing datasets
 
-- what speech will be recorded and for how long;
-- whether a participant's voice may be used to create synthetic or voice-converted samples;
-- the research purpose, foreseeable risks, and expected benefits;
+For every dataset, record:
+
+- source and version;
+- license and permitted research purpose;
+- access approval and expiration, if any;
+- redistribution restrictions;
+- speaker and consent documentation supplied by the dataset owner; and
+- required deletion or retention conditions.
+
+Restricted audio must not be committed to GitHub. Technical accessibility does not create permission to download, redistribute, clone, or publish a person's voice.
+
+## New recordings, if required
+
+New participant recording is outside the preferred scope. If a Thai dataset cannot be obtained and the team considers collecting speech, the protocol must be treated as a new project activity requiring adviser and YSC/SRC/IRB review before recording begins.
+
+Consent material must explain:
+
+- what is recorded and why;
+- whether speech may be transformed or synthetically generated;
 - who can access raw and derived audio;
-- how long recordings, embeddings, and metadata will be retained;
-- whether any data or trained model will be released;
-- how withdrawal works and what cannot be withdrawn after irreversible aggregation or publication; and
-- contact information for the student, adviser, and reviewing body.
+- retention, deletion, withdrawal, and publication rules;
+- foreseeable privacy and voice-impersonation risks; and
+- researcher, adviser, and reviewing-body contact details.
 
-Minors require the approvals and assent/guardian-consent process specified by YSC and the responsible review body. No participant should be pressured by grades, authority relationships, or payment that obscures voluntary choice.
-
-## Existing datasets and generated speech
-
-For every dataset and generator, record the source, version, license, access approval, permitted purpose, and redistribution restrictions. Restricted audio must not be committed to GitHub. A model or provider's technical availability does not imply permission to clone a real person's voice.
-
-Synthetic samples should use voices for which research use and synthesis are authorized. Do not impersonate public figures, teachers, classmates, or non-consenting people. If a provider prohibits security testing, automated generation, or redistribution, exclude it from the study.
+Minors require the assent and guardian-consent process specified by the responsible review body. No public-figure, teacher, classmate, or other non-consenting voice may be cloned for this project.
 
 ## Data minimization and security
 
-- Assign random participant identifiers; keep the identity key separate and encrypted.
-- Collect only metadata needed for the stated analysis.
-- Keep raw voice data and consent records in access-controlled storage, not in the public repository.
-- Do not publish filenames or metadata that reveal identity.
-- Define a retention/deletion date before collection.
-- Share only aggregates or explicitly approved de-identified artifacts.
+- Use random source and speaker identifiers in analysis files.
+- Keep identity keys and consent records separate and encrypted.
+- Collect only metadata required for splitting and analysis.
+- Store restricted audio in access-controlled storage, not the repository.
 - Treat speaker embeddings as potentially identifying biometric data.
-- Record who accessed restricted data and why.
+- Define retention and deletion dates before data use.
+- Publish aggregate results and approved, de-identified artifacts only.
+- Do not commit credentials, dataset tokens, identities, or restricted manifests.
 
-The repository may contain code, schemas, synthetic examples authorized for release, and hashed manifests. It must not contain participant audio, credentials, platform tokens, identity keys, or restricted dataset files.
+The public repository may contain code, configuration, schemas, hashes, aggregate tables, and artifacts whose licenses explicitly permit release.
 
-## Telephone and messaging-platform transmission
+## G.711 transformation safety
 
-Real LINE, telephone, Discord, WhatsApp/Signal, or WebRTC transmission is a stretch experiment. It may begin only when:
+C0–C3 are offline transformations of the same approved source recordings. No audio will be sent through an actual phone network. The transformed copies inherit the source dataset's access and redistribution restrictions and must be deleted on the same schedule unless the approval states otherwise.
 
-1. the recording and transmission are covered by consent and required review;
-2. controlled research accounts and consented devices are used;
-3. current platform terms allow the activity;
-4. no uninvolved person is recorded;
-5. network/device/application versions and processing settings are logged; and
-6. transferred audio is deleted according to the approved retention plan.
+Every condition must be applied symmetrically to genuine and spoof audio. Asymmetric processing could create a misleading classifier shortcut and an invalid result.
 
-Simulation remains the primary reproducible channel test. If the conditions above are not met, the real-platform track will be omitted without weakening the core hypothesis test.
+## Responsible interpretation
 
-## Misuse risk and release strategy
+- A low EER does not prove that an individual recording is genuine.
+- A measured G.711 gap does not establish performance on real Thai phone networks.
+- Report false-positive and false-negative consequences, not accuracy alone.
+- Avoid claims about demographic groups with insufficient sample size.
+- Do not market the detector as a forensic, banking, or law-enforcement decision system.
+- Preserve negative and inconclusive results; do not remove difficult conditions after scoring.
 
-A detector can support scam and forensic screening, but research artifacts can also reveal detector weaknesses or enable optimization against the detector. Therefore:
+## Misuse and release
 
-- release aggregate results and defensive methodology first;
-- evaluate whether checkpoints or detailed attack recipes create avoidable misuse risk;
-- never claim that one score proves an audio file is genuine or fake;
-- document false-positive risks, especially across speaker groups and speaking styles;
-- provide calibrated uncertainty or abstention where evidence is weak; and
-- label the system as research software, not a replacement for human investigation.
-
-## Fairness and limitations
-
-Report performance by available demographic and speaking-condition groups only where consent, sample size, and privacy allow meaningful analysis. Avoid conclusions about age, region, accent, or disability from underpowered subgroups. A benchmark result does not establish reliability for all Thai speakers, all scams, or all future generators.
+The study primarily measures detector fragility. Detailed adversarial optimization recipes are outside scope. Before releasing checkpoints or source-level scores, assess whether they expose restricted voices, enable impersonation, or facilitate evasion. Defensive analysis and aggregate results should be released before higher-risk artifacts.
 
 ## Research integrity and AI-tool disclosure
 
-YSC rules require the student to be responsible for the work and to disclose AI-tool use appropriately. Generative AI has been used to help review, structure, translate, and edit repository documentation. Before submission, the student researcher must:
+YSC rules require the student to remain responsible for the work and disclose AI-tool use appropriately. Generative AI has assisted with reviewing, structuring, translating, and editing repository documentation. Before submission, the student researcher must:
 
-1. independently verify every technical statement and citation;
-2. rewrite or approve the text in their own words and be able to explain it;
+1. independently verify every claim, equation, number, and citation;
+2. approve the wording and be able to explain the full methodology;
 3. keep a record of tools and the parts they assisted with;
-4. include the disclosure and acknowledgement required by the current YSC rules; and
-5. never use generated text or code as a substitute for conducting and understanding the experiment.
+4. include the disclosure and acknowledgement required by current YSC rules; and
+5. conduct and understand the experiment rather than treating generated text or code as evidence.
 
-Suggested disclosure, to adapt to the official form:
+Suggested disclosure to adapt to the official form:
 
 > Generative-AI tools were used for language editing, translation assistance, document organization, and code-review support. The student researcher verified the content, selected the methodology, conducted the experiments, analyzed the results, and takes responsibility for the final work.
 
-## Required review checklist
+## Required checklist
 
-- [ ] Read the current YSC ethics statement and competition requirements
-- [ ] Complete the student/adviser checklists and risk assessment
-- [ ] Determine with the adviser/SRC whether new voice recording is human-participant research
-- [ ] Obtain required SRC/IRB approval before experimentation
-- [ ] Obtain informed consent/assent before recording or voice synthesis
-- [ ] Record licenses and access approvals for every dataset and generator
-- [ ] Approve a retention, access-control, and deletion plan
-- [ ] Review real-platform experiments against current terms
-- [ ] Add the final AI-tool disclosure to the YSC submission
+- [ ] Read current YSC ethics and competition requirements
+- [ ] Complete student/adviser checklists and risk assessment
+- [ ] Obtain the required SRC/IRB decision before protected-data use
+- [ ] Record the license and approval for every dataset
+- [ ] Approve access-control, retention, and deletion procedures
+- [ ] Confirm that C0–C3 transformations remain within permitted use
+- [ ] Audit the public repository for restricted data and identifiers
+- [ ] Add the final AI-tool disclosure to the submission
 
 ## Official guidance
 

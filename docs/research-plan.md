@@ -1,317 +1,194 @@
-# Research Plan: ChannelMoLEx-TH
+# Research Plan: BenchmarkGap-TH
 
 ## 1. Problem statement
 
-Audio-deepfake detectors often perform well when the training and test data share generator fingerprints, speakers, scripts, sampling rates, and codecs. In deployment, Thai scam audio may be produced by an unseen generator and transmitted through an unknown telephone or messaging channel. The research goal is to separate evidence of synthesis from artifacts introduced by transmission.
+Audio-deepfake detectors can achieve low error on the benchmark used for development yet fail after deployment conditions change. Müller et al. reported that RawNet2 increased from 3.154% EER on ASVspoof 2019 LA to 37.819% on their In-the-Wild dataset; across evaluated configurations, they reported approximately 200–1,000% EER deterioration [1]. Shi et al. later evaluated three detector families under six communication codecs and five packet-loss rates and reported an average 5.30% degradation in EER from clean audio to codec-compressed audio with zero packet loss [2].
 
-### Main hypothesis
+Those studies establish the general problem but do not answer a narrow Thai deployment question: does clean-benchmark performance predict performance after a reproducible G.711 telephone transformation?
 
-A WavLM detector with channel-conditioned Mixture-of-LoRA-Experts routing, adversarial channel disentanglement, and cross-channel consistency training will generalize better than frozen-WavLM, single-LoRA WavLM, and standard MoLEx baselines under unseen-generator and unseen-channel conditions.
+### Research question
 
-### Research gap and contribution
+> Does detector performance on clean Thai audio-deepfake benchmark data predict performance after G.711 A-law and μ-law telephone coding?
 
-Prior work provides multilingual/Thai spoofing data and MoLEx-style parameter-efficient adaptation, but it does not directly test whether a detector can preserve generator-generalizable spoof evidence while separately modelling an unseen transmission channel. The proposed contribution is the combination of:
+### Hypotheses
 
-1. a spoof representation trained to suppress channel identity;
-2. a separate channel representation used only to condition expert routing;
-3. paired cross-channel views of the same utterance for consistency training; and
-4. a generator-family-disjoint × channel-disjoint Thai evaluation protocol.
+- **H1 — degradation:** G.711 telephone coding increases EER relative to paired clean audio for most detector families.
+- **H2 — ranking instability:** the ranking of detector families by clean EER is not perfectly preserved under G.711.
+- **H3 — bandwidth contribution:** some degradation is explained by the 8 kHz bandwidth reduction alone, while additional degradation may be attributable to A-law/μ-law companding.
 
-### Committed scope and stretch scope
+The study is descriptive and falsifiable. H1 is unsupported if paired intervals show no positive degradation. H2 is unsupported if rankings remain stable with high correlation and the clean winner consistently remains the G.711 winner. H3 is unsupported if G.711 conditions do not differ meaningfully from the 8 kHz linear-PCM control.
 
-The **committed YSC study** is deliberately bounded to four detector variants, at least two held-out generator families, and five reproducible channel groups: telephony, Opus, lossy file compression, packet/network impairment, and replay/noise. This is the minimum study required to test the main hypothesis.
+## 2. Contribution and scope
 
-Additional generators, RawNet2/AASIST reproduction, real LINE/telephone/WebRTC transmission, Thai tone auxiliary tasks, partial-deepfake localization, and conformal prediction are **stretch goals**. They will be attempted only after the committed experiment matrix and leakage checks are complete. See [`feasibility.md`](feasibility.md) for the compute plan and fallback paths.
+The contribution is a controlled, paired measurement of the clean-to-telephone benchmark gap for Thai audio-deepfake detection. It combines:
 
-### Proposed title
+1. identical source recordings across all channel conditions;
+2. symmetric transformation of genuine and spoof classes;
+3. an 8 kHz bandwidth-only control;
+4. four representative detector families;
+5. fixed development thresholds transferred to channel conditions; and
+6. paired uncertainty estimates and ranking-stability analysis.
 
-**ChannelMoLEx-TH: Channel-Robust Mixture-of-LoRA Experts for Generalizable Thai Audio Deepfake Detection**
+### Explicit exclusions
 
----
+The committed study does not investigate unseen generators, messaging applications, packet loss, replay, background noise, real telephone calls, partial deepfakes, calibration methods, abstention, Thai-tone auxiliaries, or a novel mixture-of-experts architecture. These may be discussed as future work but cannot enter the main experiment after preregistration.
 
-## 2. Architecture
+## 3. Experimental conditions
 
-```text
-Input waveform
-    ↓
-Resample/normalize without destroying forensic cues
-    ↓
-WavLM encoder
-    ↓
-LoRA-expert bank in each selected Transformer layer
-    ↓
-┌─────────────────────────┬──────────────────────────┐
-│ Spoof representation    │ Channel representation   │
-│ synthesis evidence      │ codec/bandwidth/noise    │
-└─────────────────────────┴──────────────────────────┘
-    ↓
-Channel-conditioned Top-K router
-    ↓
-Attentive temporal pooling or LSTM backend
-    ↓
-Spoof probability + uncertainty
-```
+Every test source produces four deterministic, paired conditions:
 
-### WavLM backbone
+| ID | Condition | Purpose |
+| --- | --- | --- |
+| C0 | Original 16 kHz linear PCM | Clean benchmark reference |
+| C1 | 8 kHz linear PCM round trip, then resampled to model rate | Isolate telephone-bandwidth reduction |
+| C2 | G.711 μ-law encode/decode at 8 kHz, then resampled | Measure μ-law path |
+| C3 | G.711 A-law encode/decode at 8 kHz, then resampled | Measure A-law path |
 
-WavLM provides pretrained acoustic, phonetic, speaker, prosodic, and environmental representations. Start with the backbone frozen, train the expert adapters and classifier, then compare against selective or complete fine-tuning.
+G.711 is formally defined by ITU-T Recommendation G.711 [3]. The exact encoder, decoder, resampler, software version, and command line will be frozen before final evaluation. Peak normalization, denoising, silence trimming, or loudness normalization will not be applied differently across conditions.
 
-### Mixture of LoRA Experts
+### Transformation integrity checks
 
-Insert multiple trainable low-rank adapters in parallel with selected WavLM Transformer feed-forward layers. A learned router activates only the Top-K experts for each sample. The router receives acoustic hidden states and channel context.
-
-Expert meanings must not be assigned manually. Specialization should be measured after training through activation analysis by generator, codec, style, and attack.
-
-### Dual representations
-
-1. **Channel representation:** bandwidth, codec family, compression severity, packet loss, replay, noise, and reverberation.
-2. **Spoof representation:** synthesis artifacts that should remain relatively stable across transformations of the same source recording.
-
-The classifier primarily consumes the spoof representation. The channel representation guides routing but must not become a shortcut for the class label.
-
-### Optional extensions
-
-- Multi-resolution STFT/LFCC forensic branch
-- Frame-level partial-deepfake localization
-- Thai lexical-tone and duration auxiliary tasks
-- Open-set or conformal abstention head
-- Continual insertion of new LoRA experts
-
----
-
-## 3. Training objectives
-
-A candidate objective is:
-
-```text
-L_total = L_spoof
-        + λ_channel L_channel
-        + λ_adv L_channel_adversarial
-        + λ_consistency L_cross_channel
-        + λ_router L_load_balance
-        + λ_calibration L_calibration
-```
-
-### Spoof loss
-
-Binary cross-entropy or focal loss for bona fide versus spoof speech. Sampling should be balanced by attack family, speaker, and channel rather than only by the global class count.
-
-### Channel loss
-
-Train the channel branch to identify known transformations or acoustic channel attributes. Use an `unknown` category or attribute-based labels where application identity is unavailable.
-
-### Adversarial channel-invariance loss
-
-Attach a channel classifier to the spoof representation through a gradient-reversal layer. The auxiliary classifier learns to identify channels while the spoof representation learns to suppress channel-specific shortcuts.
-
-### Cross-channel consistency loss
-
-Create several channel versions of the same underlying recording and encourage consistent spoof embeddings and predictions. Supervised contrastive learning can group all transformations of the same source.
-
-### Router regularization
-
-Use load balancing to prevent collapse into a small number of experts. Measure expert entropy and utilization rather than assuming that balanced routing is automatically optimal.
-
-### Calibration
-
-Evaluate Brier loss, temperature scaling, ensembles, conformal prediction, or selective classification. The detector should be able to abstain when evidence is insufficient.
-
----
+- Each transformed file must map to exactly one source ID.
+- Duration drift must remain within a preregistered tolerance.
+- C1–C3 must contain the same source content and labels as C0.
+- Hashes of transformation configuration and output manifests must be saved.
+- Genuine and spoof counts must be identical across paired conditions.
+- A random sample will be decoded and inspected for corruption before scoring.
 
 ## 4. Dataset design
 
-Potential research datasets include Chula Spoofed Speech (CSS), SEA-Spoof Thai, and general anti-spoofing data such as ASVspoof. Full CSS and SEA-Spoof access is restricted and must be obtained before the project begins.
+Potential Thai sources include Chula Spoofed Speech (CSS) and SEA-Spoof, subject to current access approval and licenses [4–6]. The final dataset choice must be frozen before model comparison.
 
-Dataset access is therefore treated as a project risk rather than an assumption. If restricted Thai datasets are not approved in time, the pipeline and channel-robustness method will first be validated on openly obtainable ASVspoof data. Thai evaluation will then use only lawfully accessible, consented, or self-generated recordings whose licenses permit the experiment. Results from the fallback dataset will not be presented as evidence of Thai-language generalization.
+### Split controls
 
-Add modern Thai spoof sources only where licensing and consent permit:
+- Speaker-disjoint train, development, and test partitions
+- Script/text-disjoint partitions where metadata permits
+- Reference-audio-disjoint partitions for cloned speech
+- Generator-checkpoint-disjoint partitions where metadata permits
+- No transformed version of a test source in training or development
+- One immutable test manifest used for every detector and condition
 
-- VITS-family systems
-- F5-TTS/flow-matching systems
-- ThonburianTTS or research-compatible variants
-- Neural-codec language models
-- Continuous-latent systems such as the VoxCPM/JaiTTS architectural family
-- Commercial black-box systems under permitted evaluation terms
+Generator identity is stratified where possible but is not a generalization target. The project will not claim robustness to unknown synthesis systems.
 
-### Leakage controls
+### Dataset fallback
 
-- Speaker-disjoint splits
-- Script/text-disjoint splits
-- Reference-audio-disjoint splits
-- Checkpoint-disjoint splits
-- Generator-family-disjoint final tests
-- Matching channel distributions for real and fake audio
-- Matching sampling rate, file container, loudness, duration, and preprocessing
+If restricted Thai data is unavailable, the pipeline may be validated on lawfully accessible ASVspoof data. Such a fallback result must be labelled non-Thai and cannot answer the Thai research question. The report will distinguish a completed engineering validation from a completed Thai study.
 
-Every channel transformation must be applied symmetrically to genuine and spoof classes. Otherwise, the detector may learn that a codec or sampling rate implies `fake`.
+## 5. Detector panel
 
----
+The committed panel contains four systems representing different feature and adaptation strategies:
 
-## 5. Generator-family holdout
+1. **LFCC-GMM** — classical acoustic-feature baseline
+2. **AASIST** — raw-waveform spectro-temporal graph-attention detector [7]
+3. **Frozen WavLM + classifier** — fixed self-supervised representation [8]
+4. **WavLM + single LoRA adapter** — parameter-efficient adaptation [9]
 
-Suggested families:
+Every detector receives identical train/development/test source partitions. Hyperparameters are selected using only the clean training/development data and then frozen. Channel-condition test scores cannot be used to tune architectures, training schedules, thresholds, or preprocessing.
 
-1. **Two-stage:** Tacotron 2/FastPitch/FastSpeech plus neural vocoder.
-2. **End-to-end latent-variable:** VITS and related architectures.
-3. **Diffusion/flow matching:** F5-TTS, E2-TTS, Matcha-derived systems.
-4. **Neural-codec language models:** autoregressive or parallel prediction over speech tokens.
-5. **Continuous-latent diffusion-autoregressive:** hierarchical semantic/acoustic systems without a conventional external codec tokenizer.
-6. **Commercial black boxes:** provider-level holdout where architecture is unknown.
+Three independent training seeds will be used for trainable neural systems if compute permits. Seed-level results quantify optimization variability but are not treated as independent detector families in rank-correlation tests.
 
-For each family F:
+## 6. Evaluation protocol
+
+### Primary condition
+
+For detector `m`, define:
 
 ```text
-Train: all available families except F
-Validation: development generators/checkpoints that do not overlap final tests
-Test: F only, with unseen speakers, scripts, and reference recordings
+EER_G711(m) = mean(EER_C2(m), EER_C3(m))
+ΔEER_G711(m) = EER_G711(m) − EER_C0(m)
 ```
 
-Keep at least one final family untouched until the architecture and hyperparameters are frozen.
+The macro-average prevents a decision based on whichever G.711 law happens to be easier.
 
----
+### Primary analysis
 
-## 6. Channel robustness
+For each detector, report `ΔEER_G711` with a 95% paired cluster-bootstrap confidence interval. The resampling unit is the original source recording; all channel versions of one source move together in every bootstrap replicate. Where repeated speech from the same speaker creates dependence, a speaker-cluster sensitivity analysis will also be reported.
 
-### Reproducible channel simulation
+### Bandwidth attribution
 
-- G.711 μ-law/A-law
-- AMR-NB and AMR-WB
-- Opus at several voice-oriented bitrates
-- AAC-LC, MP3, and WebM/Opus
-- Multiple encoding generations
-- 8 kHz narrowband and 16 kHz wideband paths
-- Packet loss, burst loss, jitter, and concealment
-- Resampling, clipping, automatic gain variation
-- Additive noise and reverberation
-- Loudspeaker-to-microphone replay
+Compare:
 
-### Actual transmission track
+```text
+Bandwidth effect = EER_C1 − EER_C0
+Additional μ-law effect = EER_C2 − EER_C1
+Additional A-law effect = EER_C3 − EER_C1
+```
 
-This track is a **stretch goal**, not a dependency of the main result. It begins only after the reproducible simulation track is frozen and after the required consent and YSC/SRC/IRB review has been completed.
+This avoids attributing all narrowband degradation to companding.
 
-Transmit consented research recordings through controlled accounts or calls. Record:
+### Threshold-transfer analysis
 
-- Application and version
-- Device and OS
-- Date
-- Network type and approximate condition
-- Input/output hardware
-- Noise suppression, echo cancellation, and AGC state
-- Received sampling rate and container
+EER permits a new threshold for each condition, which can hide deployment failure. Therefore, each detector's operating threshold will also be selected once on the clean development set and transferred unchanged to C0–C3. Report:
 
-Do not claim a platform uses a specific codec without direct verification.
+- false-positive rate for genuine audio;
+- false-negative rate for spoof audio;
+- balanced accuracy; and
+- change relative to C0.
 
-### Evaluation settings
+### Ranking analysis
 
-1. Known generator, known channel
-2. Unseen generator, known channel
-3. Known generator, unseen channel
-4. **Unseen generator, unseen channel**
+Across the four detector families, calculate Spearman rank correlation between C0 EER and G.711 macro-EER. Also report the fraction of paired bootstrap replicates in which the clean winner remains the G.711 winner.
 
-Setting 4 is the principal measure of success.
+With only four detector families, rank correlation has low inferential power. It is an exploratory effect estimate, not a universal claim about all detectors. Exact permutations and bootstrap intervals will be reported; the result will not be reduced to a p-value alone.
 
----
+### Secondary metrics
 
-## 7. Metrics
+- AUROC
+- AUPRC
+- EER separately for C2 and C3
+- Per-generator and per-speaker breakdowns where sample size and privacy permit
+- Inference latency and peak memory as descriptive engineering results
 
-Report aggregate and disaggregated results:
+## 7. Leakage and confounding controls
 
-- EER
-- min-DCF
-- AUROC and AUPRC
-- Spoof recall at 1% and 0.1% false-positive rates
-- False acceptance and genuine rejection at selected operating thresholds
-- Expected Calibration Error
-- Brier score
-- Risk versus coverage under abstention
-- Clean-to-channel performance degradation
-- Inference latency, memory, and throughput
+- Apply C1–C3 symmetrically to genuine and spoof samples.
+- Use identical containers, input rates, duration handling, and file naming across classes.
+- Do not encode only one class or generator family.
+- Do not allow channel labels to correlate with class labels.
+- Freeze all thresholds before opening transformed test results.
+- Store source IDs separately from human-readable identities.
+- Audit duplicate or near-duplicate audio before splitting.
+- Report exclusions and the complete sample count in every condition.
 
-Break results down by generator family, individual generator, channel, speaker, age group, speaking style, duration, Thai-only text, and Thai-English code-switching.
+## 8. Decision rules
 
----
+The project succeeds scientifically whether the hypotheses are supported or rejected, provided the protocol is completed without leakage and uncertainty is reported.
 
-## 8. Baselines and ablations
+Before final scoring, preregister:
 
-### Baselines
+1. the immutable test manifest;
+2. the four detector configurations;
+3. the seed policy;
+4. C0–C3 transformation commands;
+5. the primary G.711 macro-average;
+6. bootstrap units and replicate count; and
+7. handling of failed or corrupted samples.
 
-**Committed comparison:**
+Interpretation:
 
-1. Frozen WavLM plus classifier
-2. WavLM plus one LoRA adapter
-3. Standard WavLM/MoLEx
-4. Proposed channel-aware WavLM/MoLEx
+- A positive `ΔEER_G711` whose interval excludes zero supports degradation for that detector.
+- A clean/G.711 rank correlation near one with stable winner identity supports benchmark ranking transfer within this limited panel.
+- Weak or unstable rank agreement supports a benchmark-ranking gap.
+- Similar C1, C2, and C3 results indicate bandwidth—not G.711 companding—is the dominant measured factor.
+- Wide intervals produce an inconclusive result, not evidence of no effect.
 
-**Stretch comparison, if compute and time remain:** RawNet2, AASIST, and fully fine-tuned WavLM.
+## 9. Limitations
 
-### Ablation matrix
+- Simulated G.711 is not a complete telephone network.
+- Four detector families provide only a preliminary ranking analysis.
+- Dataset access and Thai speaker diversity may constrain external validity.
+- EER does not represent real scam prevalence or asymmetric deployment costs.
+- Current generators may not represent future synthesis systems.
+- Results cannot establish that any detector is safe for forensic or financial decisions.
 
-| Variant | Channel-conditioned routing | MoLEx | Adversarial invariance | Cross-channel consistency |
-|---|---:|---:|---:|---:|
-| Full model | ✓ | ✓ | ✓ | ✓ |
-| No channel-conditioned routing | — | ✓ | ✓ | ✓ |
-| Single LoRA | ✓ | — | ✓ | ✓ |
-| No invariance | ✓ | ✓ | — | ✓ |
-| No consistency | ✓ | ✓ | ✓ | — |
+## 10. Deliverables
 
-Each ablation changes one principal component relative to the full model. Frozen WavLM is reported separately as a reference baseline rather than described as a one-factor ablation.
+- Versioned source and transformed manifests
+- Reproducible C0–C3 transformation script and environment
+- Frozen detector configurations and model revisions
+- Source-level prediction files
+- EER, threshold-transfer, and bootstrap analysis scripts
+- Clean-versus-channel tables and plots
+- Leakage audit, model card, ethics statement, and limitations
 
-Improvement must hold under the unseen-generator × unseen-channel test. Gains limited to familiar channels may indicate channel memorization.
-
-### Decision and falsification rule
-
-The primary comparison will be macro-averaged EER across unseen-generator × unseen-channel cells, with paired cluster-bootstrap confidence intervals over source recordings (or speakers where source pairing is unavailable). Define the paired difference as `baseline EER − proposed EER`; the hypothesis will be treated as unsupported if the lower confidence bound is not above zero, or if gains disappear under leakage-controlled splits. A result that improves only known-channel performance is not evidence for the stated hypothesis.
-
----
-
-## 9. Thai-specific studies
-
-### Tone and prosody
-
-Investigate whether tone trajectories, syllable duration, pause placement, and Thai-English transitions improve cross-generator generalization. These are auxiliary forensic cues, not definitive proof: natural speakers exhibit substantial variation.
-
-### Text conditions
-
-- Pure Thai
-- Thai-English code-switching
-- Numerals and currencies
-- Names and loanwords
-- Formal versus conversational text
-
-### Speaking styles
-
-- Formal
-- Casual
-- Excited
-- Low-energy or whispered speech where permitted
-- Adolescent, adult, and elderly speakers
-
----
-
-## 10. Milestones
-
-1. Obtain dataset approvals and prepare a dataset governance statement.
-2. Build leakage-resistant manifests and channel augmentation pipeline.
-3. Reproduce RawNet2, AASIST, and WavLM baselines.
-4. Reproduce standard MoLEx.
-5. Add dual channel/spoof representations and channel-conditioned routing.
-6. Run leave-one-generator-family-out experiments.
-7. Run simulated channel experiments.
-8. Freeze the system before untouched real-platform tests.
-9. Add calibration, abstention, and error analysis.
-10. Package reproducible code, manifests, model card, and limitations.
-
----
-
-## 11. Success criteria
-
-The project succeeds if the proposed method:
-
-- Reduces error relative to standard MoLEx on held-out generator families
-- Reduces clean-to-channel degradation
-- Improves unseen-generator × unseen-channel performance
-- Maintains calibrated confidence or useful abstention
-- Demonstrates through ablation that gains come from channel-aware design
-- Avoids speaker, script, codec, and file-format leakage
-
-The system should be presented as one forensic signal, not as proof that an audio recording is genuine or fake.
+See [`feasibility.md`](feasibility.md) for the schedule and LANTA resource plan.
